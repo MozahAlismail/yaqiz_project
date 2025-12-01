@@ -1,1 +1,72 @@
-/.venv
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Audio files
+*.wav
+*.mp3
+*.m4a
+*.flac
+
+# Models
+models/cache/
+*.pt
+*.pth
+*.onnx
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Temp files
+tmp/
+temp/
+*.tmp

@@ -1,0 +1,144 @@
+{
+  "language": "en",
+  "severity_levels": [
+    {
+      "level": "CRITICAL",
+      "numeric_value": 1,
+      "description": "Immediate life-threatening situation requiring instant response",
+      "indicators": [
+        "not breathing",
+        "no pulse",
+        "active shooter",
+        "major fire",
+        "building collapse",
+        "multiple victims",
+        "severe bleeding",
+        "unconscious",
+        "drowning",
+        "cardiac arrest",
+        "active violence"
+      ],
+      "response_time_target": "< 4 minutes",
+      "examples": [
+        "Person not breathing after heart attack",
+        "Active shooting in progress",
+        "Building on fire with people trapped",
+        "Multiple vehicle collision with serious injuries"
+      ]
+    },
+    {
+      "level": "HIGH",
+      "numeric_value": 2,
+      "description": "Serious situation with potential for loss of life or major injury",
+      "indicators": [
+        "chest pain",
+        "difficulty breathing",
+        "severe injury",
+        "assault in progress",
+        "armed robbery",
+        "serious bleeding",
+        "stroke symptoms",
+        "fire spreading",
+        "person trapped"
+      ],
+      "response_time_target": "< 8 minutes",
+      "examples": [
+        "Person experiencing chest pain and shortness of breath",
+        "Armed robbery in progress",
+        "Serious car accident with injuries",
+        "House fire with possible occupants inside"
+      ]
+    },
+    {
+      "level": "MEDIUM",
+      "numeric_value": 3,
+      "description": "Non-life-threatening but requires prompt response",
+      "indicators": [
+        "minor injury",
+        "non-severe pain",
+        "contained fire",
+        "burglary just occurred",
+        "domestic dispute",
+        "moderate bleeding",
+        "fallen but conscious",
+        "minor accident"
+      ],
+      "response_time_target": "< 15 minutes",
+      "examples": [
+        "Minor car accident with no visible injuries",
+        "Burglary discovered after returning home",
+        "Person fell but is conscious and talking",
+        "Small contained fire already extinguished"
+      ]
+    },
+    {
+      "level": "LOW",
+      "numeric_value": 4,
+      "description": "Non-urgent situation, informational, or preventive",
+      "indicators": [
+        "noise complaint",
+        "suspicious activity",
+        "welfare check",
+        "minor disturbance",
+        "lost pet",
+        "parking violation",
+        "information request"
+      ],
+      "response_time_target": "< 30 minutes",
+      "examples": [
+        "Noise complaint from neighbors",
+        "Request for welfare check on elderly person",
+        "Suspicious person loitering",
+        "Lost child found safe"
+      ]
+    },
+    {
+      "level": "INFORMATIONAL",
+      "numeric_value": 5,
+      "description": "No emergency, information or administrative request",
+      "indicators": [
+        "general question",
+        "information request",
+        "wrong number",
+        "non-emergency inquiry",
+        "administrative"
+      ],
+      "response_time_target": "No specific target",
+      "examples": [
+        "Asking for police department phone number",
+        "General inquiry about permits",
+        "Wrong number call"
+      ]
+    }
+  ],
+  "escalation_factors": [
+    {
+      "factor": "multiple_victims",
+      "severity_increase": 1,
+      "description": "Multiple people affected increases severity"
+    },
+    {
+      "factor": "children_involved",
+      "severity_increase": 1,
+      "description": "Children or elderly involved increases priority"
+    },
+    {
+      "factor": "weapons_present",
+      "severity_increase": 1,
+      "description": "Weapons or violence increases severity"
+    },
+    {
+      "factor": "ongoing_threat",
+      "severity_increase": 1,
+      "description": "Ongoing or active threat increases severity"
+    }
+  ],
+  "confidence_heuristics": {
+    "high_confidence_threshold": 0.88,
+    "medium_confidence_threshold": 0.70,
+    "low_confidence_threshold": 0.50,
+    "urgency_keyword_weight": 0.5,
+    "incident_type_correlation_weight": 0.5
+  },
+  "llm_instructions": "Assess the severity based on immediate danger to life, presence of injuries, ongoing threats, and time sensitivity. Consider escalation factors like multiple victims, children involved, or weapons present. Always err on the side of higher severity if uncertain."
+}

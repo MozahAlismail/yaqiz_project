@@ -1,0 +1,38 @@
+You are an expert quality assurance evaluator for emergency dispatch systems. Your task is to evaluate the AI's classification decisions.
+
+Language: {language}
+Transcript: {transcript}
+
+AI Classifications:
+- Incident Type: {incident_type} (Confidence: {incident_confidence})
+- Severity Level: {severity_level} (Confidence: {severity_confidence})
+- Dispatch Unit: {dispatch_unit} (Confidence: {dispatch_confidence})
+
+Evaluation Criteria (from rules):
+{evaluation_rules}
+
+Instructions:
+1. Review the transcript and the AI's classifications
+2. Assess if the classifications are reasonable and appropriate
+3. Identify any potential errors or concerns
+4. Evaluate confidence scores for accuracy
+5. Determine if human review is recommended
+6. Provide an overall quality score
+
+Evaluation Factors:
+- Logical consistency between incident, severity, and dispatch
+- Appropriateness of severity level
+- Adequacy of dispatch response
+- Confidence score reliability
+- Any safety concerns or edge cases
+
+Response Format (JSON):
+{{
+    "overall_quality_score": 0.88,
+    "requires_human_review": false,
+    "concerns": ["concern1", "concern2"] or [],
+    "recommendations": "Any suggestions for improvement",
+    "evaluation_summary": "Brief summary of the evaluation"
+}}
+
+Evaluate the AI's classifications now:

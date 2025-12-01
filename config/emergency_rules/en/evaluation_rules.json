@@ -1,0 +1,166 @@
+{
+  "language": "en",
+  "evaluation_criteria": [
+    {
+      "criterion": "incident_classification_accuracy",
+      "weight": 0.30,
+      "description": "How well the incident type matches the transcript content",
+      "scoring_rules": {
+        "excellent": "Clear keyword matches and contextual alignment",
+        "good": "Reasonable inference from context",
+        "fair": "Ambiguous but plausible",
+        "poor": "Mismatched or inconsistent with transcript"
+      }
+    },
+    {
+      "criterion": "severity_appropriateness",
+      "weight": 0.30,
+      "description": "Whether the severity level matches the urgency and danger",
+      "scoring_rules": {
+        "excellent": "Severity perfectly matches life threat and urgency",
+        "good": "Severity is reasonable given the situation",
+        "fair": "Severity might be slightly over/under estimated",
+        "poor": "Severity significantly mismatched"
+      }
+    },
+    {
+      "criterion": "dispatch_adequacy",
+      "weight": 0.25,
+      "description": "Whether the dispatch unit can handle the emergency",
+      "scoring_rules": {
+        "excellent": "Optimal unit(s) selected with all needed capabilities",
+        "good": "Appropriate unit(s) selected",
+        "fair": "Adequate but could be optimized",
+        "poor": "Wrong unit or insufficient resources"
+      }
+    },
+    {
+      "criterion": "confidence_calibration",
+      "weight": 0.15,
+      "description": "How well the confidence scores match the actual certainty",
+      "scoring_rules": {
+        "excellent": "Confidence scores accurately reflect certainty",
+        "good": "Confidence scores are reasonable",
+        "fair": "Confidence scores slightly miscalibrated",
+        "poor": "Confidence scores misleading"
+      }
+    }
+  ],
+  "quality_score_ranges": {
+    "excellent": {
+      "min": 0.90,
+      "max": 1.00,
+      "action": "Auto-approve"
+    },
+    "good": {
+      "min": 0.75,
+      "max": 0.89,
+      "action": "Auto-approve with logging"
+    },
+    "fair": {
+      "min": 0.60,
+      "max": 0.74,
+      "action": "Flag for review"
+    },
+    "poor": {
+      "min": 0.00,
+      "max": 0.59,
+      "action": "Require human review"
+    }
+  },
+  "human_review_triggers": [
+    {
+      "trigger": "low_confidence",
+      "threshold": 0.70,
+      "description": "Any classification below 70% confidence"
+    },
+    {
+      "trigger": "inconsistent_classifications",
+      "description": "When incident, severity, and dispatch don't logically align"
+    },
+    {
+      "trigger": "critical_severity",
+      "description": "All CRITICAL severity cases require human verification"
+    },
+    {
+      "trigger": "ambiguous_transcript",
+      "description": "Transcript is unclear or contains conflicting information"
+    },
+    {
+      "trigger": "multiple_incidents",
+      "description": "Transcript describes multiple different emergencies"
+    },
+    {
+      "trigger": "quality_score_below_threshold",
+      "threshold": 0.75,
+      "description": "Overall quality score below 75%"
+    }
+  ],
+  "consistency_checks": [
+    {
+      "check": "incident_severity_match",
+      "description": "Verify incident type typically warrants the assigned severity",
+      "examples": {
+        "valid": [
+          {"incident": "FIRE", "severity": "CRITICAL"},
+          {"incident": "NOISE_COMPLAINT", "severity": "LOW"}
+        ],
+        "invalid": [
+          {"incident": "FIRE", "severity": "LOW"},
+          {"incident": "CARDIAC_ARREST", "severity": "INFORMATIONAL"}
+        ]
+      }
+    },
+    {
+      "check": "severity_dispatch_match",
+      "description": "Verify dispatch units are appropriate for severity level",
+      "examples": {
+        "valid": [
+          {"severity": "CRITICAL", "dispatch": "AMBULANCE"},
+          {"severity": "LOW", "dispatch": "POLICE"}
+        ],
+        "invalid": [
+          {"severity": "CRITICAL", "dispatch": "None"},
+          {"severity": "INFORMATIONAL", "dispatch": "FIRE_POLICE_AMBULANCE"}
+        ]
+      }
+    },
+    {
+      "check": "incident_dispatch_match",
+      "description": "Verify dispatch units can handle the incident type",
+      "examples": {
+        "valid": [
+          {"incident": "FIRE", "dispatch": "FIRE"},
+          {"incident": "MEDICAL_EMERGENCY", "dispatch": "AMBULANCE"}
+        ],
+        "invalid": [
+          {"incident": "FIRE", "dispatch": "AMBULANCE_ONLY"},
+          {"incident": "DROWNING", "dispatch": "POLICE_ONLY"}
+        ]
+      }
+    }
+  ],
+  "safety_checks": [
+    {
+      "check": "underestimated_severity",
+      "priority": "HIGH",
+      "description": "Detect if severity might be underestimated based on keywords"
+    },
+    {
+      "check": "insufficient_dispatch",
+      "priority": "HIGH",
+      "description": "Detect if dispatch resources might be insufficient"
+    },
+    {
+      "check": "missed_critical_keywords",
+      "priority": "MEDIUM",
+      "description": "Check for critical keywords that might have been missed"
+    }
+  ],
+  "confidence_heuristics": {
+    "high_confidence_threshold": 0.85,
+    "medium_confidence_threshold": 0.70,
+    "low_confidence_threshold": 0.55
+  },
+  "llm_instructions": "Evaluate the AI's classifications holistically. Check for logical consistency across all three classifications. Verify that the severity and dispatch are appropriate for the incident type. Consider safety implications - it's better to over-respond than under-respond. Flag any concerns or inconsistencies. Recommend human review when there's any doubt about safety or appropriateness."
+}

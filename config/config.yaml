@@ -1,0 +1,127 @@
+# AI Emergency Dispatch Assistant Configuration
+
+# Application Settings
+app:
+  name: "AI Emergency Dispatch Assistant"
+  version: "1.0.0"
+  debug: false
+  host: "0.0.0.0"
+  port: 8000
+
+# Database Settings - PostgreSQL
+database:
+  host: "localhost"
+  port: 5432
+  database: "emergency_dispatch"
+  user: "postgres"
+  password: "postgres123"
+  # Connection pool settings
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 3600
+  
+# Model Settings
+models:
+  # STT Model Configuration (OpenAI Whisper API)
+  stt:
+    model: "whisper-1"  # OpenAI's Whisper model via API
+    language: null  # Auto-detect (supports: en, ar, es, fr, etc.)
+    
+  # Language Detection
+  language_detection:
+    model_name: "langdetect"
+    confidence_threshold: 0.85
+    supported_languages: ["ar", "en"]
+    
+  # LLM Configuration
+  llm:
+    provider: "openai"  # or "huggingface"
+    model_name: "gpt-4-turbo-preview"
+    temperature: 0.1
+    max_tokens: 500
+    
+  # HuggingFace Fallback
+  huggingface:
+    incident_model: "facebook/bart-large-mnli"
+    severity_model: "facebook/bart-large-mnli"
+    dispatch_model: "facebook/bart-large-mnli"
+    
+# Rule Files Configuration
+rules:
+  base_path: "config/emergency_rules"
+  languages:
+    ar:
+      incident_rules: "config/emergency_rules/ar/incident_rules.json"
+      severity_rules: "config/emergency_rules/ar/severity_rules.json"
+      dispatch_rules: "config/emergency_rules/ar/dispatch_rules.json"
+      evaluation_rules: "config/emergency_rules/ar/evaluation_rules.json"
+    en:
+      incident_rules: "config/emergency_rules/en/incident_rules.json"
+      severity_rules: "config/emergency_rules/en/severity_rules.json"
+      dispatch_rules: "config/emergency_rules/en/dispatch_rules.json"
+      evaluation_rules: "config/emergency_rules/en/evaluation_rules.json"
+
+# Prompt Templates
+prompts:
+  incident_classification: "config/prompts/incident_prompt.txt"
+  severity_classification: "config/prompts/severity_prompt.txt"
+  dispatch_classification: "config/prompts/dispatch_prompt.txt"
+  self_evaluation: "config/prompts/evaluation_prompt.txt"
+
+# Agent Configuration
+agents:
+  stt_agent:
+    enabled: true
+    timeout: 30
+  language_detection_agent:
+    enabled: true
+    timeout: 5
+  incident_agent:
+    enabled: true
+    timeout: 15
+  severity_agent:
+    enabled: true
+    timeout: 15
+  dispatch_agent:
+    enabled: true
+    timeout: 15
+  self_eval_agent:
+    enabled: true
+    timeout: 10
+
+# Human-in-the-Loop Settings
+hitl:
+  enabled: true
+  confidence_threshold: 0.75
+  require_review_below_threshold: true
+
+# RLHF Training Settings
+rlhf:
+  enabled: true
+  min_feedback_samples: 10
+  training_frequency: "daily"
+  learning_rate: 0.0001
+  batch_size: 8
+  epochs: 3
+
+# Logging
+logging:
+  level: "INFO"
+  format: "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>"
+  log_file: "logs/app.log"
+  rotation: "500 MB"
+  retention: "10 days"
+
+# API Settings
+api:
+  cors_origins: ["*"]
+  max_upload_size: 52428800  # 50 MB
+  allowed_audio_formats: [".wav", ".mp3", ".m4a", ".flac", ".ogg"]
+  
+# Performance Settings
+performance:
+  max_workers: 4
+  batch_processing: true
+  cache_enabled: true
+  cache_ttl: 3600

@@ -1,73 +1,80 @@
 # ============================================
 # Core FastAPI and Web Framework
 # ============================================
-fastapi
-uvicorn[standard]
-python-multipart
-pydantic
-pydantic-settings
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+pydantic==2.10.3
+pydantic-settings==2.6.1
 
 # ============================================
 # LangChain and LangGraph
 # ============================================
-langchain
-langchain-openai
-langchain-community
-langgraph
-langchain-core
+langchain==0.3.13
+langchain-openai==0.2.14
+langchain-community==0.3.13
+langgraph==0.2.59
+langchain-core==0.3.25
 
 # ============================================
 # AI/ML - OpenAI API Only
 # ============================================
-openai
+openai==1.57.4
 
 # ============================================
 # Language Detection
 # ============================================
-langdetect
+langdetect==1.0.9
 
 # ============================================
 # Database - PostgreSQL
 # ============================================
-psycopg2-binary
-asyncpg
-sqlalchemy
-alembic
+psycopg2-binary==2.9.10
+asyncpg==0.30.0
+sqlalchemy==2.0.36
+alembic==1.14.0
 
 # ============================================
 # Utilities
 # ============================================
-python-dotenv
-pyyaml
+python-dotenv==1.0.1
+pyyaml==6.0.2
 
 # ============================================
 # Logging and Monitoring
 # ============================================
-loguru
-prometheus-client
+loguru==0.7.3
+prometheus-client==0.21.0
 
 # ============================================
 # Testing
 # ============================================
-pytest
-pytest-asyncio
-pytest-cov
-httpx
-faker
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+httpx==0.28.1
+faker==33.1.0
 
 # ============================================
 # Development Tools
 # ============================================
-black
-flake8
-mypy
-isort
-pre-commit
+black==24.10.0
+flake8==7.1.1
+mypy==1.13.0
+isort==5.13.2
+pre-commit==4.0.1
 
 # ============================================
 # Additional Dependencies
 # ============================================
-aiofiles
-python-jose[cryptography]
-passlib[bcrypt]
-email-validator
+aiofiles==24.1.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+email-validator==2.2.0
+
+
+psycopg2==2.9.11
+pyyaml
+dotenv
+fastapi
+uvicorn

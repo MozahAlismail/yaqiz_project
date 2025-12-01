@@ -1,0 +1,103 @@
+{
+  "language": "en",
+  "incident_types": [
+    {
+      "type": "FIRE",
+      "keywords": ["fire", "smoke", "burning", "flames", "explosion", "gas leak", "smells like gas"],
+      "description": "Fire-related emergencies including structure fires, vehicle fires, gas leaks, and explosions",
+      "priority_range": [1, 2]
+    },
+    {
+      "type": "MEDICAL_EMERGENCY",
+      "keywords": ["heart attack", "stroke", "unconscious", "not breathing", "chest pain", "seizure", "bleeding", "injured", "fell", "accident", "hurt", "pain", "sick", "diabetic", "allergic reaction"],
+      "description": "Medical emergencies requiring immediate medical attention",
+      "priority_range": [1, 3]
+    },
+    {
+      "type": "TRAFFIC_ACCIDENT",
+      "keywords": ["car accident", "crash", "collision", "hit", "vehicle", "road", "highway", "motorcycle", "pedestrian hit", "rolled over"],
+      "description": "Traffic accidents and vehicle collisions",
+      "priority_range": [2, 4]
+    },
+    {
+      "type": "ASSAULT",
+      "keywords": ["attacked", "assault", "beating", "fight", "stabbed", "shot", "weapon", "gun", "knife", "hitting", "violent"],
+      "description": "Physical assault or violent crimes in progress",
+      "priority_range": [1, 2]
+    },
+    {
+      "type": "ROBBERY",
+      "keywords": ["robbery", "robber", "stealing", "burglar", "break in", "broke in", "thief", "stolen", "armed robbery"],
+      "description": "Robbery or burglary in progress or just occurred",
+      "priority_range": [1, 3]
+    },
+    {
+      "type": "DOMESTIC_VIOLENCE",
+      "keywords": ["domestic", "husband", "wife", "partner", "boyfriend", "girlfriend", "hitting me", "abuse", "scared", "threatening"],
+      "description": "Domestic violence situations",
+      "priority_range": [1, 2]
+    },
+    {
+      "type": "SUSPICIOUS_ACTIVITY",
+      "keywords": ["suspicious", "strange person", "lurking", "prowler", "trespassing", "doesn't belong", "watching"],
+      "description": "Suspicious persons or activities",
+      "priority_range": [3, 5]
+    },
+    {
+      "type": "MISSING_PERSON",
+      "keywords": ["missing", "lost", "can't find", "disappeared", "wandered off", "Alzheimer", "dementia", "child missing"],
+      "description": "Missing or lost persons",
+      "priority_range": [2, 4]
+    },
+    {
+      "type": "DROWNING",
+      "keywords": ["drowning", "water", "pool", "lake", "river", "ocean", "underwater", "can't swim"],
+      "description": "Water rescue or drowning emergencies",
+      "priority_range": [1, 1]
+    },
+    {
+      "type": "STRUCTURE_COLLAPSE",
+      "keywords": ["collapsed", "building collapsed", "roof caved", "wall fell", "trapped", "rubble", "crushed"],
+      "description": "Building or structure collapse with potential victims",
+      "priority_range": [1, 2]
+    },
+    {
+      "type": "ANIMAL_ATTACK",
+      "keywords": ["dog bite", "animal attack", "bitten", "mauled", "snake bite", "wild animal"],
+      "description": "Animal attacks or bites",
+      "priority_range": [2, 4]
+    },
+    {
+      "type": "OVERDOSE",
+      "keywords": ["overdose", "drugs", "pills", "heroin", "fentanyl", "narcan", "opioid", "not responding"],
+      "description": "Drug overdose emergencies",
+      "priority_range": [1, 2]
+    },
+    {
+      "type": "MENTAL_HEALTH_CRISIS",
+      "keywords": ["suicidal", "wants to hurt himself", "wants to hurt herself", "mental health", "crisis", "psychotic", "threatening suicide"],
+      "description": "Mental health crisis or suicide threats",
+      "priority_range": [1, 3]
+    },
+    {
+      "type": "NOISE_COMPLAINT",
+      "keywords": ["noise", "loud music", "party", "disturbance", "too loud", "barking"],
+      "description": "Noise complaints or disturbances",
+      "priority_range": [4, 5]
+    },
+    {
+      "type": "WELFARE_CHECK",
+      "keywords": ["check on", "welfare check", "haven't heard from", "worried about", "hasn't answered"],
+      "description": "Request to check on someone's welfare",
+      "priority_range": [3, 5]
+    }
+  ],
+  "confidence_heuristics": {
+    "high_confidence_threshold": 0.85,
+    "medium_confidence_threshold": 0.65,
+    "low_confidence_threshold": 0.45,
+    "keyword_match_weight": 0.4,
+    "context_match_weight": 0.6
+  },
+  "llm_instructions": "Analyze the transcript carefully. Look for explicit mentions of the emergency type. Consider the context and urgency. If multiple incident types are mentioned, prioritize the most severe or immediate threat."
+}

@@ -1,0 +1,33 @@
+You are an expert emergency dispatch coordinator. Your task is to determine the appropriate emergency response unit(s) to dispatch.
+
+Language: {language}
+Transcript: {transcript}
+Incident Type: {incident_type}
+Severity Level: {severity_level}
+
+Available Dispatch Units (from rules):
+{dispatch_rules}
+
+Instructions:
+1. Based on the incident type and severity, select the appropriate unit(s)
+2. Consider if multiple units are needed
+3. Factor in the urgency and scale of the emergency
+4. Match to dispatch units from the provided rules
+5. Provide a confidence score between 0.0 and 1.0
+
+Dispatch Guidelines:
+- FIRE: Fire department, potential hazmat
+- POLICE: Law enforcement, traffic control, investigations
+- AMBULANCE: Medical emergencies, injuries
+- RESCUE: Technical rescue, water rescue, specialized teams
+- MULTIPLE: Situations requiring multiple unit types
+
+Response Format (JSON):
+{{
+    "dispatch_unit": "primary unit or comma-separated units",
+    "confidence": 0.90,
+    "reasoning": "Brief explanation of dispatch decision",
+    "estimated_priority": "Priority 1-5 (1=highest)"
+}}
+
+Determine the dispatch unit(s) now:
