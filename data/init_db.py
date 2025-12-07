@@ -232,11 +232,11 @@ def init_feedback_table():
         conn = psycopg2.connect(**params)
         cursor = conn.cursor()
 
-        # Create feedback table with foreign key
+        # Create feedback table with foreign key and unique constraint
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS feedback (
                 feedback_id VARCHAR(36) PRIMARY KEY,
-                case_id VARCHAR(36) NOT NULL,
+                case_id VARCHAR(36) NOT NULL UNIQUE,
                 corrected_incident VARCHAR(100),
                 corrected_severity VARCHAR(50),
                 corrected_unit VARCHAR(100),

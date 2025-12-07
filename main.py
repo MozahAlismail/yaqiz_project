@@ -37,6 +37,7 @@ from api.feedback_router import router as feedback_router
 from api.case_router import router as case_router
 from api.retrain_router import router as retrain_router
 from api.health_router import router as health_router
+from api.analytics_router import router as analytics_router
 
 # Initialize database
 from data.init_db import initialize_databases
@@ -145,6 +146,7 @@ app.include_router(feedback_router)
 app.include_router(case_router)
 app.include_router(retrain_router)
 app.include_router(health_router)
+app.include_router(analytics_router)
 
 
 @app.on_event("startup")

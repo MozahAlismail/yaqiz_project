@@ -81,11 +81,39 @@ python main.py
 
 ## API Endpoints
 
-- POST /api/analyze-audio - Analyze emergency audio
-- POST /api/operator-feedback - Submit corrections
-- GET /api/get-case/{case_id} - Retrieve case
-- POST /api/retrain-model - Trigger RLHF training
-- GET /api/health - Health check
+### Audio Analysis
+- **POST** `/api/analyze-audio` - Analyze emergency audio file
+
+### Cases (Full CRUD)
+- **GET** `/api/case/{case_id}` - Retrieve a specific case by ID
+- **GET** `/api/cases?limit=100&offset=0` - Retrieve all cases (paginated)
+- **PUT** `/api/case/{case_id}` - Update a case's information
+- **DELETE** `/api/case/{case_id}` - Delete a case (⚠️ also deletes feedback)
+- **GET** `/api/get-case/{case_id}` - [DEPRECATED] Use `/api/case/{case_id}` instead
+
+### Feedback (Full CRUD + Upsert)
+- **POST** `/api/operator-feedback` - Submit/Update operator corrections (UPSERT)
+- **GET** `/api/feedback/{feedback_id}` - Retrieve a specific feedback by ID
+- **GET** `/api/feedbacks?limit=100&offset=0` - Retrieve all feedbacks (paginated)
+- **PUT** `/api/feedback/{feedback_id}` - Update feedback information
+- **DELETE** `/api/feedback/{feedback_id}` - Delete feedback only
+
+**Note:** Each case can have only ONE feedback (one-to-one relationship)
+
+### Analytics
+- **GET** `/api/analytics` - Retrieve comprehensive dashboard analytics
+  - Feedback analysis (edited vs correct cases, edit/acceptance rates)
+  - Average confidence scores (incident, severity, dispatch)
+  - Incident types distribution with counts and percentages
+  - Language distribution (en, ar, etc.)
+  - Severity levels distribution (CRITICAL, HIGH, MEDIUM, LOW)
+  - Dispatch units distribution (AMBULANCE, POLICE, FIRE_DEPARTMENT, etc.)
+
+### Model Training
+- **POST** `/api/retrain-model` - Trigger RLHF training
+
+### System
+- **GET** `/api/health` - Health check
 
 ## Architecture
 
