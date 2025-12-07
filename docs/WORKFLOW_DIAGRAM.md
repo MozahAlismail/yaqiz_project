@@ -213,7 +213,7 @@
 │  │  │  • Dispatch units distribution                            │     │    │
 │  │  └──────────────────────────────────────────────────────────┘     │    │
 │  │                                                                     │    │
-│  │  🎨 Visual Dashboard (dashboard.html)                              │    │
+│  │  🎨 Visual Dashboard (static/dashboard.html)                         │    │
 │  │  • KPI Cards                                                        │    │
 │  │  • Confidence Score Progress Bars                                  │    │
 │  │  • Interactive Charts (Chart.js)                                    │    │
@@ -544,7 +544,8 @@ Option 2: Local Development
 │       ├── ar/               # Arabic rules
 │       └── en/               # English rules
 │
-├── dashboard.html            # Analytics dashboard
+├── static/                   # Static files
+│   └── dashboard.html       # Analytics dashboard
 │
 └── tests/                    # Testing
     ├── unit/
@@ -580,7 +581,7 @@ START
   │   └─→ POST http://localhost:8000/api/operator-feedback
   │
   ├─→ Step 8: View Dashboard
-  │   └─→ Open dashboard.html in browser
+  │   └─→ Open static/dashboard.html in browser
   │
   └─→ Step 9: Monitor & Improve
       └─→ POST http://localhost:8000/api/retrain-model
