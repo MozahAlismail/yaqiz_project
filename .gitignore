@@ -70,3 +70,13 @@ htmlcov/
 tmp/
 temp/
 *.tmp
+
+# Node.js
+node_modules/
+dist/
+.env.local
+*.tsbuildinfo
+
+.claude/
+.claude/settings.local.json
+nul
