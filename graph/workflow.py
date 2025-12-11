@@ -14,7 +14,6 @@ from langgraph.checkpoint.memory import MemorySaver
 from graph.state import EmergencyState, create_initial_state
 from graph.nodes import (
     init_nodes,
-    stt_node,
     language_detection_node,
     incident_classification_node,
     severity_classification_node,
@@ -26,7 +25,6 @@ from graph.nodes import (
     complete_processing_node,
 )
 from graph.edges import (
-    route_after_stt,
     route_after_language_detection,
     route_after_incident_classification,
     route_after_self_evaluation,
@@ -48,7 +46,7 @@ def build_emergency_graph(confidence_threshold: float = 0.75) -> StateGraph:
     calls through the multi-agent pipeline.
 
     Graph Structure:
-        START --> stt --> language_detection
+        START --> language_detection
                             |
                             +--> [unsupported] --> END
                             |
@@ -64,6 +62,9 @@ def build_emergency_graph(confidence_threshold: float = 0.75) -> StateGraph:
                                                                                    |
                                                                                    +--> complete_processing --> END
 
+    Note: STT is handled externally via faster-whisper services.
+    The workflow expects transcript to be provided in the initial state.
+
     Args:
         confidence_threshold: Confidence threshold for routing to human review
 
@@ -76,7 +77,6 @@ def build_emergency_graph(confidence_threshold: float = 0.75) -> StateGraph:
     graph = StateGraph(EmergencyState)
 
     # Add all nodes
-    graph.add_node("stt", stt_node)
     graph.add_node("language_detection", language_detection_node)
     graph.add_node("incident_classification", incident_classification_node)
     graph.add_node("severity_classification", severity_classification_node)
@@ -87,18 +87,9 @@ def build_emergency_graph(confidence_threshold: float = 0.75) -> StateGraph:
     graph.add_node("flag_for_review", flag_for_review_node)
     graph.add_node("complete_processing", complete_processing_node)
 
-    # Set entry point
-    graph.set_entry_point("stt")
-
-    # Add conditional edge after STT
-    graph.add_conditional_edges(
-        "stt",
-        route_after_stt,
-        {
-            "language_detection": "language_detection",
-            "end": END,
-        }
-    )
+    # Set entry point - workflow starts at language_detection
+    # Note: STT is handled externally via faster-whisper services
+    graph.set_entry_point("language_detection")
 
     # Add conditional edge after language detection
     graph.add_conditional_edges(
@@ -157,7 +148,6 @@ def build_emergency_graph(confidence_threshold: float = 0.75) -> StateGraph:
 
 
 def create_emergency_graph(
-    stt_model,
     language_model,
     incident_classifier,
     severity_classifier,
@@ -172,8 +162,10 @@ def create_emergency_graph(
     application startup. It initializes nodes with models and compiles
     the graph with optional checkpointing.
 
+    Note: STT is handled externally via faster-whisper services.
+    The workflow expects transcript to be provided in the initial state.
+
     Args:
-        stt_model: STT model instance
         language_model: Language detection model instance
         incident_classifier: Incident classifier instance
         severity_classifier: Severity classifier instance
@@ -190,7 +182,6 @@ def create_emergency_graph(
 
     # Initialize nodes with model dependencies
     init_nodes(
-        stt_model=stt_model,
         language_model=language_model,
         incident_classifier=incident_classifier,
         severity_classifier=severity_classifier,

@@ -12,7 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 # Import models
-from models.stt_model import create_stt_model
 from models.language_model import create_language_model
 from models.incident_classifier import create_incident_classifier
 from models.severity_classifier import create_severity_classifier
@@ -21,7 +20,6 @@ from models.rlhf_trainer import create_rlhf_trainer
 from models.translation_model import create_translation_model
 
 # Import agents
-from agents.stt_agent import STTAgent
 from agents.language_detection_agent import LanguageDetectionAgent
 from agents.incident_agent import IncidentAgent
 from agents.severity_agent import SeverityAgent
@@ -66,7 +64,6 @@ _severity_classifier = None
 _dispatch_classifier = None
 _emergency_graph = None
 _language_model = None
-_stt_model = None
 
 
 def load_config(config_path: str = "config/config.yaml") -> dict:
@@ -91,7 +88,7 @@ def initialize_system():
     global _config, _main_controller, _rlhf_trainer, _realtime_audio_service
     global _realtime_audio_controller, _websocket_audio_service, _translation_model
     global _incident_classifier, _severity_classifier, _dispatch_classifier
-    global _emergency_graph, _language_model, _stt_model
+    global _emergency_graph, _language_model
 
     # Load configuration
     _config = load_config()
@@ -104,7 +101,7 @@ def initialize_system():
     initialize_databases()
 
     # Create models (store in globals for graph access)
-    _stt_model = create_stt_model(_config)
+    # Note: STT is handled externally via faster-whisper services
     _language_model = create_language_model(_config)
     _incident_classifier = create_incident_classifier(_config)
     _severity_classifier = create_severity_classifier(_config)
@@ -113,9 +110,9 @@ def initialize_system():
     _translation_model = create_translation_model(_config)
 
     # Initialize LangGraph emergency workflow
+    # Note: STT is handled externally via faster-whisper services
     logger.info("Initializing LangGraph emergency dispatch workflow")
     _emergency_graph = create_emergency_graph(
-        stt_model=_stt_model,
         language_model=_language_model,
         incident_classifier=_incident_classifier,
         severity_classifier=_severity_classifier,
@@ -126,7 +123,7 @@ def initialize_system():
     logger.info("LangGraph emergency dispatch workflow initialized")
 
     # Create agents (still needed for legacy support and other services)
-    stt_agent = STTAgent(_stt_model)
+    # Note: STT is handled externally via faster-whisper services
     language_agent = LanguageDetectionAgent(_language_model)
     incident_agent = IncidentAgent(_incident_classifier)
     severity_agent = SeverityAgent(_severity_classifier)
@@ -135,7 +132,6 @@ def initialize_system():
 
     # Create agent controller (now uses LangGraph internally)
     agent_controller = AgentController(
-        stt_agent=stt_agent,
         language_agent=language_agent,
         incident_agent=incident_agent,
         severity_agent=severity_agent,
@@ -230,11 +226,6 @@ def get_websocket_audio_service():
 def get_emergency_graph_instance():
     """Get the compiled LangGraph emergency dispatch workflow."""
     return _emergency_graph
-
-
-def get_stt_model():
-    """Get STT model instance."""
-    return _stt_model
 
 
 def get_language_model():

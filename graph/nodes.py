@@ -4,6 +4,9 @@ LangGraph Node Functions for Emergency Dispatch Pipeline
 Each node function receives the EmergencyState and returns a partial state dict
 with updated values. Nodes preserve existing business logic from the original
 agent implementations while adapting to the LangGraph pattern.
+
+Note: STT (Speech-to-Text) is handled externally via faster-whisper services.
+The workflow expects transcript to be provided in the initial state.
 """
 
 from datetime import datetime
@@ -13,7 +16,6 @@ from loguru import logger
 from graph.state import EmergencyState
 
 # Global references to models/classifiers (set during initialization)
-_stt_model = None
 _language_model = None
 _incident_classifier = None
 _severity_classifier = None
@@ -22,7 +24,6 @@ _config = None
 
 
 def init_nodes(
-    stt_model,
     language_model,
     incident_classifier,
     severity_classifier,
@@ -35,18 +36,19 @@ def init_nodes(
     This function must be called during application startup to provide
     the nodes with access to the ML models and classifiers.
 
+    Note: STT is handled externally via faster-whisper services.
+    The workflow expects transcript to be provided in the initial state.
+
     Args:
-        stt_model: STT model instance for transcription
         language_model: Language detection model instance
         incident_classifier: Incident classification model
         severity_classifier: Severity classification model
         dispatch_classifier: Dispatch classification model
         config: Application configuration dictionary
     """
-    global _stt_model, _language_model, _incident_classifier
+    global _language_model, _incident_classifier
     global _severity_classifier, _dispatch_classifier, _config
 
-    _stt_model = stt_model
     _language_model = language_model
     _incident_classifier = incident_classifier
     _severity_classifier = severity_classifier
@@ -67,63 +69,12 @@ def _update_timestamp(timestamps: dict, step: str) -> dict:
 # Main Pipeline Nodes
 # =============================================================================
 
-def stt_node(state: EmergencyState) -> Dict[str, Any]:
-    """
-    Speech-to-Text node - Transcribes audio to text.
-
-    Processes the audio file at state["audio_path"] and extracts:
-    - Transcript text
-    - Detected language
-    - Language probability
-    - Transcript segments with timestamps
-
-    Args:
-        state: Current EmergencyState
-
-    Returns:
-        Partial state dict with STT results or error
-    """
-    logger.info(f"[STT Node] Processing audio: {state.get('audio_path')}")
-
-    try:
-        if _stt_model is None:
-            raise RuntimeError("STT model not initialized. Call init_nodes() first.")
-
-        audio_path = state.get("audio_path")
-        if not audio_path:
-            raise ValueError("No audio_path provided in state")
-
-        # Call the STT model transcribe method
-        result = _stt_model.transcribe(audio_path)
-
-        timestamps = _update_timestamp(state.get("timestamps", {}), "stt_completed")
-
-        logger.info(f"[STT Node] Transcription complete. Language: {result.get('language')}")
-
-        return {
-            "transcript": result.get("text", ""),
-            "segments": result.get("segments", []),
-            "detected_language": result.get("language", "en"),
-            "language_probability": result.get("language_probability", 0.0),
-            "processing_status": "stt_complete",
-            "timestamps": timestamps
-        }
-
-    except Exception as e:
-        logger.error(f"[STT Node] Failed: {e}")
-        return {
-            "error": f"STT failed: {str(e)}",
-            "processing_status": "failed",
-            "timestamps": _update_timestamp(state.get("timestamps", {}), "stt_failed")
-        }
-
-
 def language_detection_node(state: EmergencyState) -> Dict[str, Any]:
     """
     Language Detection node - Verifies/detects transcript language.
 
-    Uses the language detection model to verify the language detected
-    by STT or detect language if STT didn't provide one.
+    Uses the language detection model to verify the language of the transcript.
+    This is the entry point of the LangGraph workflow.
 
     Args:
         state: Current EmergencyState with transcript
@@ -154,9 +105,9 @@ def language_detection_node(state: EmergencyState) -> Dict[str, Any]:
         confidence = result.get("confidence", 0.0)
         is_supported = result.get("is_supported", False)
 
-        # Override detected_language if language model has higher confidence
-        stt_language = state.get("detected_language", "")
-        final_language = detected_lang if confidence > state.get("language_probability", 0.0) else stt_language
+        # Use detected language or fallback to provided language
+        provided_language = state.get("detected_language", "")
+        final_language = detected_lang if detected_lang != "unknown" else provided_language
 
         timestamps = _update_timestamp(state.get("timestamps", {}), "language_detection_completed")
 
@@ -172,7 +123,7 @@ def language_detection_node(state: EmergencyState) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"[Language Detection Node] Failed: {e}")
-        # Don't fail the pipeline - use STT language as fallback
+        # Don't fail the pipeline - use provided language as fallback
         return {
             "language_confidence": 0.0,
             "is_supported": False,

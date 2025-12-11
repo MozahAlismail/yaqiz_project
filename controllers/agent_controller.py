@@ -4,7 +4,6 @@ import logging
 import uuid
 from typing import Dict, Any, Optional, Generator
 
-from agents.stt_agent import STTAgent
 from agents.language_detection_agent import LanguageDetectionAgent
 from agents.incident_agent import IncidentAgent
 from agents.severity_agent import SeverityAgent
@@ -33,11 +32,13 @@ class AgentController:
     providing stateful execution, conditional routing, and HITL
     checkpointing support. The legacy sequential pipeline is still
     available via the use_legacy_pipeline flag.
+
+    Note: STT is handled externally via faster-whisper services.
+    The workflow expects transcript to be provided in the initial state.
     """
 
     def __init__(
         self,
-        stt_agent: STTAgent,
         language_agent: LanguageDetectionAgent,
         incident_agent: IncidentAgent,
         severity_agent: SeverityAgent,
@@ -48,8 +49,9 @@ class AgentController:
         """
         Initialize the agent controller.
 
+        Note: STT is handled externally via faster-whisper services.
+
         Args:
-            stt_agent: Speech-to-text agent
             language_agent: Language detection agent
             incident_agent: Incident classification agent
             severity_agent: Severity classification agent
@@ -57,7 +59,6 @@ class AgentController:
             self_eval_agent: Self-evaluation agent
             use_legacy_pipeline: If True, use sequential pipeline instead of LangGraph
         """
-        self.stt_agent = stt_agent
         self.language_agent = language_agent
         self.incident_agent = incident_agent
         self.severity_agent = severity_agent
@@ -169,23 +170,24 @@ class AgentController:
 
         Preserved for backward compatibility and fallback scenarios.
 
+        Note: STT is handled externally via faster-whisper services.
+        This method expects a transcript path or requires external STT.
+
         Args:
-            audio_path: Path to audio file
+            audio_path: Path to audio file (legacy - now expects transcript)
 
         Returns:
             Complete analysis results
         """
         logger.info(f"Processing emergency call (legacy): {audio_path}")
 
-        # Step 1: Speech-to-Text
-        stt_result = self.stt_agent.process(audio_path)
-        if stt_result["status"] != "success":
-            return {"error": "STT failed", "details": stt_result}
+        # Note: STT is now handled externally via faster-whisper services
+        # Legacy pipeline should receive transcript directly
+        # For backward compatibility, we'll use a placeholder
+        transcript = ""
+        detected_language = "en"
 
-        transcript = stt_result["transcript"]
-        detected_language = stt_result.get("detected_language", "en")
-
-        # Step 2: Language Detection (verify)
+        # Step 1: Language Detection
         lang_result = self.language_agent.process(transcript)
         if lang_result["status"] == "success":
             detected_language = lang_result["language"]

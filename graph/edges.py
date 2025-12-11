@@ -4,6 +4,9 @@ Conditional Edge Functions for Emergency Dispatch LangGraph
 Defines routing logic for conditional edges in the workflow graph.
 These functions determine which node to execute next based on the
 current state values.
+
+Note: The workflow now starts at language_detection node.
+STT is handled externally via faster-whisper services.
 """
 
 from typing import Literal
@@ -14,27 +17,6 @@ from graph.state import EmergencyState
 
 # Default confidence threshold for routing decisions
 DEFAULT_CONFIDENCE_THRESHOLD = 0.75
-
-
-def route_after_stt(state: EmergencyState) -> Literal["language_detection", "end"]:
-    """
-    Route after STT node completion.
-
-    If STT failed (error present and no transcript), route to end.
-    Otherwise, continue to language detection.
-
-    Args:
-        state: Current EmergencyState after STT node
-
-    Returns:
-        Next node name: "language_detection" or "end"
-    """
-    if state.get("error") and not state.get("transcript"):
-        logger.warning(f"[Router] STT failed, ending pipeline: {state.get('error')}")
-        return "end"
-
-    logger.debug("[Router] STT successful, routing to language_detection")
-    return "language_detection"
 
 
 def route_after_language_detection(
@@ -170,7 +152,6 @@ def create_incident_router(confidence_threshold: float = DEFAULT_CONFIDENCE_THRE
 # =============================================================================
 
 # Node names for routing
-NODE_STT = "stt"
 NODE_LANGUAGE_DETECTION = "language_detection"
 NODE_INCIDENT_CLASSIFICATION = "incident_classification"
 NODE_SEVERITY_CLASSIFICATION = "severity_classification"
