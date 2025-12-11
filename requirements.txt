@@ -13,7 +13,8 @@ pydantic-settings
 langchain
 langchain-openai
 langchain-community
-langgraph
+langgraph>=0.2.0
+langgraph-checkpoint>=1.0.0
 langchain-core
 
 # ============================================

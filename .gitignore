@@ -80,3 +80,6 @@ dist/
 .claude/
 .claude/settings.local.json
 nul
+
+nul
+node_modules/
