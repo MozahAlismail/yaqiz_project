@@ -29,33 +29,33 @@ class MainController:
             password=self.db_config.get('password', 'postgres')
         )
     
-    def analyze_audio(self, audio_path: str) -> Dict[str, Any]:
-        """
-        Analyze emergency audio and store results.
+    # def analyze_audio(self, audio_path: str) -> Dict[str, Any]:
+    #     """
+    #     Analyze emergency audio and store results.
         
-        Args:
-            audio_path: Path to audio file
+    #     Args:
+    #         audio_path: Path to audio file
             
-        Returns:
-            Analysis results with case_id
-        """
-        try:
-            # Process through agents
-            result = self.agent_controller.process_emergency_call(audio_path)
+    #     Returns:
+    #         Analysis results with case_id
+    #     """
+    #     try:
+    #         # Process through agents
+    #         result = self.agent_controller.process_emergency_call(audio_path)
             
-            # Generate case ID
-            case_id = str(uuid.uuid4())
-            result["case_id"] = case_id
+    #         # Generate case ID
+    #         case_id = str(uuid.uuid4())
+    #         result["case_id"] = case_id
             
-            # Store in database
-            self._store_case(case_id, result)
+    #         # Store in database
+    #         self._store_case(case_id, result)
             
-            logger.info(f"Case {case_id} analyzed and stored")
-            return result
+    #         logger.info(f"Case {case_id} analyzed and stored")
+    #         return result
             
-        except Exception as e:
-            logger.error(f"Audio analysis failed: {e}")
-            return {"error": str(e), "status": "failed"}
+    #     except Exception as e:
+    #         logger.error(f"Audio analysis failed: {e}")
+    #         return {"error": str(e), "status": "failed"}
     
     def _store_case(self, case_id: str, result: Dict[str, Any]) -> None:
         """Store case in database."""

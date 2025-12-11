@@ -1,0 +1,56 @@
+{
+  "language": "ar",
+  "dispatch_units": [
+    {
+      "unit": "FIRE",
+      "full_name": "الدفاع المدني",
+      "applicable_incidents": ["FIRE", "EXPLOSION", "GAS_LEAK", "STRUCTURE_COLLAPSE", "HAZMAT"],
+      "severity_requirements": {
+        "minimum": "MEDIUM",
+        "automatic_dispatch": ["CRITICAL", "HIGH"]
+      },
+      "capabilities": ["إطفاء الحرائق", "عمليات الإنقاذ", "التعامل مع المواد الخطرة", "إنقاذ تقني", "إسعافات أولية"],
+      "average_response_time": "6 دقائق"
+    },
+    {
+      "unit": "AMBULANCE",
+      "full_name": "الخدمات الطبية الطارئة",
+      "applicable_incidents": [
+        "MEDICAL_EMERGENCY",
+        "TRAFFIC_ACCIDENT",
+        "ASSAULT",
+        "DROWNING",
+        "ANIMAL_ATTACK",
+        "OVERDOSE",
+        "STRUCTURE_COLLAPSE"
+      ],
+      "severity_requirements": {
+        "minimum": "MEDIUM",
+        "automatic_dispatch": ["CRITICAL", "HIGH"]
+      },
+      "capabilities": ["دعم حياتي متقدم", "رعاية طارئة", "نقل المرضى", "رعاية إصابات", "استجابة قلبية"],
+      "average_response_time": "8 دقائق"
+    },
+    {
+      "unit": "POLICE",
+      "full_name": "الشرطة",
+      "applicable_incidents": [
+        "ASSAULT",
+        "ROBBERY",
+        "DOMESTIC_VIOLENCE",
+        "SUSPICIOUS_ACTIVITY",
+        "MISSING_PERSON",
+        "TRAFFIC_ACCIDENT",
+        "MENTAL_HEALTH_CRISIS",
+        "NOISE_COMPLAINT",
+        "WELFARE_CHECK"
+      ],
+      "severity_requirements": {
+        "minimum": "LOW",
+        "automatic_dispatch": ["CRITICAL", "HIGH", "MEDIUM"]
+      },
+      "capabilities": ["تطبيق القانون", "التحقيقات", "تنظيم الحركة", "حماية عامة", "تدخل الأزمات"],
+      "average_response_time": "10 دقائق"
+    }
+  ]
+}

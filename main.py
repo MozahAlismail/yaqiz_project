@@ -18,6 +18,7 @@ from models.incident_classifier import create_incident_classifier
 from models.severity_classifier import create_severity_classifier
 from models.dispatch_classifier import create_dispatch_classifier
 from models.rlhf_trainer import create_rlhf_trainer
+from models.translation_model import create_translation_model
 
 # Import agents
 from agents.stt_agent import STTAgent
@@ -30,6 +31,7 @@ from agents.self_eval_agent import SelfEvaluationAgent
 # Import controllers
 from controllers.agent_controller import AgentController
 from controllers.main_controller import MainController
+from controllers.realtime_audio_controller import realtimeAudioController
 
 # Import routers
 from api.audio_router import router as audio_router
@@ -38,6 +40,12 @@ from api.case_router import router as case_router
 from api.retrain_router import router as retrain_router
 from api.health_router import router as health_router
 from api.analytics_router import router as analytics_router
+from api.realtime_audio_router import router as realtime_audio_router
+from api.websocket_audio_router import router as websocket_audio_router
+
+# Import services
+from services.realtime_audio_service import create_realtime_audio_service
+from services.websocket_audio_service import create_websocket_audio_service
 
 # Initialize database
 from data.init_db import initialize_databases
@@ -46,6 +54,13 @@ from data.init_db import initialize_databases
 _config = None
 _main_controller = None
 _rlhf_trainer = None
+_realtime_audio_service = None
+_realtime_audio_controller = None
+_websocket_audio_service = None
+_translation_model = None
+_incident_classifier = None
+_severity_classifier = None
+_dispatch_classifier = None
 
 
 def load_config(config_path: str = "config/config.yaml") -> dict:
@@ -67,34 +82,35 @@ def setup_logging(config: dict):
 
 def initialize_system():
     """Initialize all system components."""
-    global _config, _main_controller, _rlhf_trainer
-    
+    global _config, _main_controller, _rlhf_trainer, _realtime_audio_service, _realtime_audio_controller, _websocket_audio_service, _translation_model, _incident_classifier, _severity_classifier, _dispatch_classifier
+
     # Load configuration
     _config = load_config()
-    
+
     # Setup logging
     setup_logging(_config)
     logger.info("Starting AI Emergency Dispatch Assistant")
-    
+
     # Initialize databases
     initialize_databases()
-    
+
     # Create models
     stt_model = create_stt_model(_config)
     language_model = create_language_model(_config)
-    incident_classifier = create_incident_classifier(_config)
-    severity_classifier = create_severity_classifier(_config)
-    dispatch_classifier = create_dispatch_classifier(_config)
+    _incident_classifier = create_incident_classifier(_config)
+    _severity_classifier = create_severity_classifier(_config)
+    _dispatch_classifier = create_dispatch_classifier(_config)
     _rlhf_trainer = create_rlhf_trainer(_config)
-    
+    _translation_model = create_translation_model(_config)
+
     # Create agents
     stt_agent = STTAgent(stt_model)
     language_agent = LanguageDetectionAgent(language_model)
-    incident_agent = IncidentAgent(incident_classifier)
-    severity_agent = SeverityAgent(severity_classifier)
-    dispatch_agent = DispatchAgent(dispatch_classifier)
+    incident_agent = IncidentAgent(_incident_classifier)
+    severity_agent = SeverityAgent(_severity_classifier)
+    dispatch_agent = DispatchAgent(_dispatch_classifier)
     self_eval_agent = SelfEvaluationAgent(_config)
-    
+
     # Create agent controller
     agent_controller = AgentController(
         stt_agent=stt_agent,
@@ -104,13 +120,43 @@ def initialize_system():
         dispatch_agent=dispatch_agent,
         self_eval_agent=self_eval_agent
     )
-    
+
     # Create main controller
     _main_controller = MainController(
         agent_controller=agent_controller,
         db_config=_config.get("database", {})
     )
-    
+
+    # Create realtime audio service with translation model
+    _realtime_audio_service = create_realtime_audio_service(
+        config=_config,
+        translation_model=_translation_model
+    )
+
+    # Create realtime audio controller
+    _realtime_audio_controller = realtimeAudioController(
+        realtime_audio_service=_realtime_audio_service,
+        incident_classifier=_incident_classifier,
+        severity_classifier=_severity_classifier,
+        dispatch_classifier=_dispatch_classifier,
+        db_config=_config.get("database", {})
+    )
+
+    # Create websocket audio service
+    _websocket_audio_service = create_websocket_audio_service(
+        config=_config,
+        translation_model=_translation_model
+    )
+
+    # Initialize websocket audio router with service and classifiers
+    from api.websocket_audio_router import init_websocket_audio_service
+    init_websocket_audio_service(
+        service=_websocket_audio_service,
+        incident_clf=_incident_classifier,
+        severity_clf=_severity_classifier,
+        dispatch_clf=_dispatch_classifier
+    )
+
     logger.info("System initialization complete")
 
 
@@ -122,6 +168,41 @@ def get_main_controller():
 def get_rlhf_trainer():
     """Get RLHF trainer instance."""
     return _rlhf_trainer
+
+
+def get_realtime_audio_service():
+    """Get realtime audio service instance."""
+    return _realtime_audio_service
+
+
+def get_incident_classifier():
+    """Get incident classifier instance."""
+    return _incident_classifier
+
+
+def get_severity_classifier():
+    """Get severity classifier instance."""
+    return _severity_classifier
+
+
+def get_dispatch_classifier():
+    """Get dispatch classifier instance."""
+    return _dispatch_classifier
+
+
+def get_realtime_audio_controller():
+    """Get realtime audio controller instance."""
+    return _realtime_audio_controller
+
+
+def get_translation_model():
+    """Get translation model instance."""
+    return _translation_model
+
+
+def get_websocket_audio_service():
+    """Get websocket audio service instance."""
+    return _websocket_audio_service
 
 
 # Create FastAPI app
@@ -147,6 +228,8 @@ app.include_router(case_router)
 app.include_router(retrain_router)
 app.include_router(health_router)
 app.include_router(analytics_router)
+app.include_router(realtime_audio_router)
+app.include_router(websocket_audio_router)
 
 
 @app.on_event("startup")
