@@ -53,7 +53,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
                 onClick={() => onNavigate('incidents-list')}
               />
               <NavButton
-                label="مكالمة مباشرة"
+                label="مكالمة"
                 isActive={currentView === 'realtime'}
                 onClick={() => onNavigate('realtime')}
               />

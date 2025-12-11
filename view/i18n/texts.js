@@ -108,6 +108,8 @@ export const texts = {
     caseClassified: 'تم تصنيف الحالة',
     awaitingDecision: 'في انتظار قرار المشغل',
     confidence: 'نسبة الثقة',
+    startRecording: 'بدء التسجيل',
+    stopRecording: 'إيقاف التسجيل',
   },
 
   tags: {

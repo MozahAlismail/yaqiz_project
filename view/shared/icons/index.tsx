@@ -198,6 +198,15 @@ export const IconMicrophone: React.FC<IconProps> = ({ size = 24, className = '' 
   </svg>
 );
 
+export const IconMicrophoneOff: React.FC<IconProps> = ({ size = 24, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M1 1L23 23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9 9V14C9 14.8 9.3 15.6 9.9 16.1C10.4 16.7 11.2 17 12 17C12.8 17 13.6 16.7 14.1 16.1C14.3 15.9 14.5 15.6 14.6 15.3M15 9.3V5C15 4.2 14.7 3.4 14.1 2.9C13.6 2.3 12.8 2 12 2C11.2 2 10.4 2.3 9.9 2.9C9.5 3.2 9.2 3.7 9.1 4.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M17 16.95C16.1 17.9 15 18.6 13.7 19C12.5 19.4 11.2 19.4 10 19.1C8.7 18.8 7.6 18.1 6.7 17.2C5.8 16.3 5.2 15.1 4.9 13.9C4.8 13.3 4.7 12.6 4.7 12V10M19 10V12C19 12.4 19 12.7 18.9 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 19V23M8 23H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 export const IconSettings: React.FC<IconProps> = ({ size = 24, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
     <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>

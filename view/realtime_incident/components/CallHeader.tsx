@@ -1,22 +1,20 @@
 import React from 'react';
 import { Button, Timer, LiveIndicator } from '../../shared/components';
-import { IconSave, IconPhoneOff } from '../../shared/icons';
+import { IconMicrophone, IconMicrophoneOff } from '../../shared/icons';
 import { texts } from '../../i18n/texts';
 
 interface CallHeaderProps {
   callDuration: number;
   isLive: boolean;
-  onSave: () => void;
-  onEndCall: () => void;
-  isSaving?: boolean;
+  isRecording: boolean;
+  onToggleRecording: () => void;
 }
 
 export const CallHeader: React.FC<CallHeaderProps> = ({
   callDuration,
   isLive,
-  onSave,
-  onEndCall,
-  isSaving = false,
+  isRecording,
+  onToggleRecording,
 }) => {
   return (
     <header className="flex items-center justify-between bg-white border-b border-gray-200 px-4 py-3 sm:px-6">
@@ -26,26 +24,14 @@ export const CallHeader: React.FC<CallHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
-        {isSaving && (
-          <span className="text-sm text-gray-500">{texts.common.autoSaving}</span>
-        )}
         <Button
-          variant="success"
+          variant={isRecording ? 'danger' : 'primary'}
           size="md"
-          icon={<IconSave size={18} />}
-          onClick={onSave}
-          ariaLabel={texts.common.save}
+          icon={isRecording ? <IconMicrophoneOff size={18} /> : <IconMicrophone size={18} />}
+          onClick={onToggleRecording}
+          ariaLabel={isRecording ? texts.realtime.stopRecording : texts.realtime.startRecording}
         >
-          {texts.common.save}
-        </Button>
-        <Button
-          variant="warning"
-          size="md"
-          icon={<IconPhoneOff size={18} />}
-          onClick={onEndCall}
-          ariaLabel={texts.actions.endCall}
-        >
-          {texts.actions.endCall}
+          {isRecording ? texts.realtime.stopRecording : texts.realtime.startRecording}
         </Button>
       </div>
     </header>
