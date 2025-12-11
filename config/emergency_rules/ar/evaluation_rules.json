@@ -1,0 +1,33 @@
+{
+  "language": "ar",
+  "evaluation_criteria": [
+    {
+      "criterion": "incident_classification_accuracy",
+      "weight": 0.30,
+      "description": "مدى دقة تصنيف نوع البلاغ مقارنة بمحتوى المكالمة",
+      "scoring_rules": {
+        "excellent": "تطابق واضح بين الكلمات والسياق",
+        "good": "استنتاج منطقي من السياق",
+        "fair": "مقبول لكن به غموض",
+        "poor": "غير متطابق مع محتوى المكالمة"
+      }
+    },
+    {
+      "criterion": "severity_appropriateness",
+      "weight": 0.30,
+      "description": "مدى توافق مستوى الخطورة مع الخطر والسرعة المطلوبة",
+      "scoring_rules": {
+        "excellent": "مستوى الخطورة مناسب تمامًا",
+        "good": "مستوى الخطورة معقول",
+        "fair": "زيادة أو تقليل بسيط في التقدير",
+        "poor": "تقدير خاطئ بشكل واضح"
+      }
+    }
+  ],
+  "quality_score_ranges": {
+    "excellent": { "min": 0.90, "max": 1.00, "action": "قبول تلقائي" },
+    "good": { "min": 0.75, "max": 0.89, "action": "قبول مع تسجيل" },
+    "fair": { "min": 0.60, "max": 0.74, "action": "مراجعة" },
+    "poor": { "min": 0.00, "max": 0.59, "action": "يتطلب مراجعة بشرية" }
+  }
+}

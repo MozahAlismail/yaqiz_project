@@ -5,17 +5,35 @@
 ### Root Files
 - main.py                  # Main FastAPI application
 - requirements.txt         # Python dependencies
+- requirements-pinned.txt  # Pinned dependencies
 - README.md               # Project documentation
 - .gitignore              # Git ignore patterns
 - .env.example            # Environment variables template
 - .dockerignore           # Docker ignore patterns
 - Dockerfile              # Docker container definition
 - docker-compose.yml      # Docker compose configuration
-- pytest.ini              # Pytest configuration
-- conftest.py             # Pytest fixtures
-- run.sh                  # Startup script
-- test_api.sh             # API testing script
-- PROJECT_STRUCTURE.md    # This file
+
+### docs/
+- docs/ANALYTICS.md                    # Analytics documentation
+- docs/API_EXAMPLES.md                 # API usage examples
+- docs/CRUD_OPERATIONS.md              # Database operations guide
+- docs/DATABASE_TROUBLESHOOTING.md     # Database troubleshooting
+- docs/INSTALLATION_GUIDE.md           # Installation instructions
+- docs/PROJECT_STRUCTURE.md            # This file
+- docs/QUICK_START.md                  # Quick start guide
+- docs/WORKFLOW_DIAGRAM.md             # System workflow diagrams
+
+### scripts/
+- scripts/run.sh           # Startup script
+- scripts/test_api.sh      # API testing script
+
+### static/
+- static/dashboard.html    # Analytics dashboard
+
+### tests/
+- tests/pytest.ini         # Pytest configuration
+- tests/conftest.py        # Pytest fixtures
+- tests/test_db_connection.py  # Database connection test
 
 ### config/
 - config/config.yaml                              # Main configuration

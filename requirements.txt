@@ -13,13 +13,19 @@ pydantic-settings
 langchain
 langchain-openai
 langchain-community
-langgraph
+langgraph>=0.2.0
+langgraph-checkpoint>=1.0.0
 langchain-core
 
 # ============================================
 # AI/ML - OpenAI API Only
 # ============================================
 openai
+
+# ============================================
+# Audio Processing - Local STT
+# ============================================
+faster-whisper
 
 # ============================================
 # Language Detection

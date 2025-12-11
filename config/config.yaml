@@ -40,13 +40,67 @@ models:
     model_name: "gpt-4-turbo-preview"
     temperature: 0.1
     max_tokens: 500
+    # Translation-specific settings
+    translation_model: "gpt-4o-mini"  # Cost-effective model for translation
+    translation_temperature: 0.3  # Slightly higher for natural language
+    translation_max_tokens: 2000
     
   # HuggingFace Fallback
   huggingface:
     incident_model: "facebook/bart-large-mnli"
     severity_model: "facebook/bart-large-mnli"
     dispatch_model: "facebook/bart-large-mnli"
-    
+
+# Faster-Whisper Configuration (Local STT for realtime Audio Analysis)
+whisper:
+  # Model size: tiny, base, small, medium, large-v1, large-v2, large-v3
+  # Larger models are more accurate but slower
+  # Recommended: base (fast, good accuracy), small (balanced), medium (high accuracy)
+  model_size: "base"
+
+  # Device: cpu or cuda
+  # Use cuda if you have a compatible NVIDIA GPU for faster processing
+  device: "cpu"
+
+  # Compute type for CTranslate2
+  # Options: int8, int8_float16, int16, float16, float32
+  # int8: Fastest, lowest memory, slight accuracy loss (recommended for CPU)
+  # float16: Good balance (recommended for GPU)
+  # float32: Highest accuracy, slowest
+  compute_type: "int8"
+
+  # Number of CPU threads to use (only for CPU device)
+  # Set to 0 to use all available threads
+  num_threads: 4
+
+  # Beam size for decoding (higher = more accurate but slower)
+  # Recommended: 5 for good balance
+  beam_size: 5
+
+  # Voice Activity Detection (VAD) settings
+  vad_filter: true  # Enable VAD to filter out silence
+  vad_min_silence_duration_ms: 500  # Minimum silence duration to split segments
+
+  # Language settings
+  # Set to null for auto-detection, or specify language code (e.g., "en", "ar")
+  language: null
+
+  # Task: transcribe or translate
+  # transcribe: Convert speech to text in original language
+  # translate: Convert speech to English text
+  task: "transcribe"
+
+  # WebSocket Streaming Settings
+  # Sample rate for PCM audio streaming (16kHz is recommended for good quality/performance balance)
+  sample_rate: 16000
+
+  # Chunk duration in seconds for processing buffered audio (0.5-2.0 recommended)
+  chunk_duration_seconds: 1.0
+
+  # Minimum buffer size in bytes before processing (avoid processing too-small chunks)
+  # 16000 bytes = ~0.5 seconds at 16kHz mono 16-bit PCM
+  min_chunk_size_bytes: 16000
+
 # Rule Files Configuration
 rules:
   base_path: "config/emergency_rules"
@@ -68,6 +122,7 @@ prompts:
   severity_classification: "config/prompts/severity_prompt.txt"
   dispatch_classification: "config/prompts/dispatch_prompt.txt"
   self_evaluation: "config/prompts/evaluation_prompt.txt"
+  translation: "config/prompts/translation_prompt.txt"
 
 # Agent Configuration
 agents:

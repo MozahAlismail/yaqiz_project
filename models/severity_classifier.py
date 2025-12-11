@@ -4,12 +4,20 @@ Severity Classification Model Module
 
 import logging
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+
+class SeverityClassification(BaseModel):
+    severity_level: str
+    confidence: float
+    reasoning: str
+    urgency_indicators: List[str]
 
 
 class SeverityClassifier:
