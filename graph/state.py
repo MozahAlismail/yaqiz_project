@@ -161,3 +161,74 @@ def create_initial_state(audio_path: str, case_id: str) -> EmergencyState:
             "created": datetime.utcnow().isoformat()
         }
     )
+
+
+def create_initial_state_from_transcript(
+    transcript: str,
+    case_id: str,
+    detected_language: str = "",
+    language_probability: float = 0.0,
+    segments: list = None
+) -> EmergencyState:
+    """
+    Create an initial state from an existing transcript (STT already done).
+
+    Used by realtime-audio-analyze endpoint where faster-whisper handles STT
+    externally, then LangGraph workflow handles classification.
+
+    Args:
+        transcript: Transcribed text from audio
+        case_id: Unique identifier for this emergency case
+        detected_language: Language detected by STT (e.g., "ar", "en")
+        language_probability: Confidence from STT language detection
+        segments: Optional list of transcript segments
+
+    Returns:
+        EmergencyState with transcript populated, ready for classification
+    """
+    return EmergencyState(
+        # Input - no audio path since STT is done externally
+        audio_path="",
+        case_id=case_id,
+
+        # STT output - pre-populated
+        transcript=transcript,
+        segments=segments or [],
+        detected_language=detected_language,
+        language_probability=language_probability,
+
+        # Language verification - to be filled by language_detection node
+        language_confidence=0.0,
+        is_supported=False,
+
+        # Classification fields - to be filled by nodes
+        incident_type="",
+        incident_confidence=0.0,
+        incident_reasoning="",
+        keywords_found=[],
+
+        severity_level="",
+        severity_confidence=0.0,
+        severity_reasoning="",
+        urgency_indicators=[],
+
+        dispatch_unit="",
+        dispatch_confidence=0.0,
+        dispatch_reasoning="",
+        estimated_priority="",
+
+        # Evaluation fields
+        overall_quality_score=0.0,
+        requires_human_review=False,
+        concerns=[],
+        evaluation_summary="",
+        low_confidence_areas=[],
+
+        # Metadata
+        processing_status="transcript_ready",
+        error=None,
+        timestamps={
+            "created": datetime.utcnow().isoformat(),
+            "stt_completed": datetime.utcnow().isoformat()
+        }
+    )

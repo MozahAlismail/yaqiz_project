@@ -141,6 +141,108 @@ class WebSocketAudioService:
 
         return audio_float32
 
+    def transcribe_buffer(self, session_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Transcribe audio buffer without classification (for streaming mode).
+
+        This method only does STT - classification is handled by streaming LangGraph.
+
+        Args:
+            session_state: Current session state with audio buffer
+
+        Returns:
+            Dictionary with transcript text, language, and timing info
+        """
+        try:
+            # Ensure Whisper model is loaded
+            self._load_whisper_model()
+
+            # Get audio data from buffer
+            pcm_data = bytes(session_state["audio_buffer"])
+
+            if len(pcm_data) < self.min_chunk_size_bytes:
+                return None
+
+            # Convert PCM to float32 array for Whisper
+            audio_array = self.pcm_to_float32_array(pcm_data)
+
+            # Calculate audio duration
+            duration = len(pcm_data) / (self.sample_rate * 2)
+            session_state["total_audio_duration"] += duration
+
+            # Transcribe with Faster-Whisper
+            stt_start = datetime.now()
+            segments, info = self.whisper_model.transcribe(
+                audio_array,
+                beam_size=5,
+                vad_filter=True,
+                language=None  # Auto-detect
+            )
+            stt_time_ms = (datetime.now() - stt_start).total_seconds() * 1000
+
+            # Extract detected language
+            detected_language = info.language
+
+            # Collect segment texts
+            segment_texts = []
+            for segment in segments:
+                segment_texts.append(segment.text.strip())
+
+            transcript_text = " ".join(segment_texts).strip()
+
+            if not transcript_text:
+                return None
+
+            # Update session state
+            if session_state["original_transcript"]:
+                session_state["original_transcript"] += " " + transcript_text
+            else:
+                session_state["original_transcript"] = transcript_text
+
+            if session_state["detected_language"] is None:
+                session_state["detected_language"] = detected_language
+
+            session_state["segment_count"] += 1
+
+            return {
+                "text": transcript_text,
+                "full_transcript": session_state["original_transcript"],
+                "detected_language": detected_language,
+                "stt_time_ms": stt_time_ms,
+                "audio_duration_seconds": duration,
+                "segment_index": session_state["segment_count"]
+            }
+
+        except Exception as e:
+            logger.error(f"Error transcribing buffer: {e}", exc_info=True)
+            return None
+
+    def translate_text(self, text: str, target_language: str, source_language: str = None) -> Optional[str]:
+        """Translate text using translation model.
+
+        Args:
+            text: Text to translate
+            target_language: Target language code
+            source_language: Source language code (optional)
+
+        Returns:
+            Translated text or None if translation failed
+        """
+        if not self.translation_model:
+            return None
+
+        try:
+            result = self.translation_model.translate(
+                text=text,
+                target_language=target_language,
+                source_language=source_language
+            )
+            if result.get("status") == "success":
+                return result.get("translated_text")
+            return None
+        except Exception as e:
+            logger.error(f"Translation failed: {e}")
+            return None
+
     def process_audio_chunk(
         self,
         session_state: Dict[str, Any],
@@ -252,21 +354,33 @@ class WebSocketAudioService:
             # Increment segment count
             session_state["segment_count"] += 1
 
-            # Build partial result
+            # Build partial result with clear transcription section
             partial_result = {
                 "type": "partial",
                 "segment_index": session_state["segment_count"],
                 "timestamp": datetime.now().isoformat(),
+                "audio_duration_seconds": session_state["total_audio_duration"],
+
+                # Transcription section - always includes both original and translated
+                "transcription": {
+                    "original_text": session_state["original_transcript"],
+                    "original_language": session_state["detected_language"],
+                    "translated_text": session_state["translated_text"] if session_state["translate"] else None,
+                    "translated_language": session_state["target_language"] if session_state["translate"] else None,
+                    "translation_enabled": session_state["translate"],
+                    "text_used_for_classification": text_for_classification,
+                    "classification_language": language_for_classification
+                },
+
+                # Legacy fields for backward compatibility
                 "partial_transcript": session_state["original_transcript"],
                 "detected_language": session_state["detected_language"],
-                "audio_duration_seconds": session_state["total_audio_duration"],
+                "partial_translated_text": session_state["translated_text"] if session_state["translate"] else None,
+                "translated_language": session_state["target_language"] if session_state["translate"] else None,
+
+                # Classification results
                 "classification": classification_result
             }
-
-            # Add translation fields if enabled
-            if session_state["translate"]:
-                partial_result["partial_translated_text"] = session_state["translated_text"]
-                partial_result["translated_language"] = session_state["target_language"]
 
             # Clear processed audio from buffer
             session_state["audio_buffer"].clear()
@@ -324,21 +438,33 @@ class WebSocketAudioService:
                 dispatch_classifier=dispatch_classifier
             )
 
-            # Build final result matching live_audio_analyze format
+            # Build final result with clear transcription section
             final_result = {
                 "type": "final",
                 "timestamp": datetime.now().isoformat(),
                 "session_duration_seconds": session_state["total_audio_duration"],
                 "total_segments": session_state["segment_count"],
+
+                # Transcription section - always includes both original and translated
+                "transcription": {
+                    "original_text": session_state["original_transcript"],
+                    "original_language": session_state["detected_language"] or "unknown",
+                    "translated_text": session_state["translated_text"] if session_state["translate"] else None,
+                    "translated_language": session_state["target_language"] if session_state["translate"] else None,
+                    "translation_enabled": session_state["translate"],
+                    "text_used_for_classification": text_for_classification,
+                    "classification_language": language_for_classification
+                },
+
+                # Legacy fields for backward compatibility
                 "original_transcript": session_state["original_transcript"],
                 "detected_language": session_state["detected_language"] or "unknown",
+                "translated_text": session_state["translated_text"] if session_state["translate"] else None,
+                "translated_language": session_state["target_language"] if session_state["translate"] else None,
+
+                # Classification results
                 "classification": classification_result
             }
-
-            # Add translation fields only if translation was enabled
-            if session_state["translate"]:
-                final_result["translated_text"] = session_state["translated_text"]
-                final_result["translated_language"] = session_state["target_language"]
 
             logger.info(f"Final result generated: {session_state['segment_count']} segments processed")
             return final_result

@@ -8,3 +8,12 @@ export { useDebounce, useDebouncedCallback, useDebouncedState } from './useDebou
 
 export { useWebSocket } from './useWebSocket';
 export type { WebSocketStatus, UseWebSocketOptions, UseWebSocketReturn } from './useWebSocket';
+
+export { useAudioStream } from './useAudioStream';
+export type {
+  TranscriptionData,
+  ClassificationData,
+  StreamingResponse,
+  UseAudioStreamOptions,
+  UseAudioStreamReturn,
+} from './useAudioStream';

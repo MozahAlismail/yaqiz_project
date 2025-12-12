@@ -180,3 +180,40 @@ performance:
   batch_processing: true
   cache_enabled: true
   cache_ttl: 3600
+
+# ===========================================================================
+# Streaming LangGraph Configuration
+# ===========================================================================
+streaming:
+  # Enable streaming mode
+  enabled: true
+
+  # Confidence threshold for evaluation (0.0 - 1.0)
+  # Cases meeting this threshold get "normal" priority review
+  confidence_threshold: 0.75
+
+  # Evaluation window in seconds
+  # Maximum time to wait for confidence before timeout
+  evaluation_window_seconds: 10.0
+
+  # Minimum transcript length before starting classification
+  # Helps avoid classifying too-short utterances
+  min_transcript_length: 10
+
+  # Critical severity confidence threshold
+  # If severity is CRITICAL with this confidence, escalate immediately
+  critical_severity_threshold: 0.6
+
+  # Enable verbose logging for streaming workflow
+  verbose_logging: true
+
+  # Review queue settings
+  review_queue:
+    # Maximum cases per priority level to return in queue
+    max_per_request: 50
+
+    # Priority labels for display
+    priorities:
+      urgent: "URGENT - Immediate review required"
+      high: "HIGH - Priority review needed"
+      normal: "NORMAL - Standard verification"

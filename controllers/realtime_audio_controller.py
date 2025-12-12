@@ -1,6 +1,7 @@
 """realtime Audio Analysis Controller
 
 Handles high-level orchestration for realtime audio analysis workflow.
+Uses LangGraph workflow for classification (no STT node - STT handled by faster-whisper).
 Follows MVC architecture pattern.
 """
 
@@ -11,11 +12,14 @@ from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+from graph.state import create_initial_state_from_transcript
+from graph.workflow import get_emergency_graph
+
 logger = logging.getLogger(__name__)
 
 
 class realtimeAudioController:
-    """Controller for realtime audio analysis workflow."""
+    """Controller for realtime audio analysis workflow using LangGraph."""
 
     def __init__(
         self,
@@ -30,9 +34,9 @@ class realtimeAudioController:
 
         Args:
             realtime_audio_service: realtimeAudioService instance
-            incident_classifier: IncidentClassifier instance
-            severity_classifier: SeverityClassifier instance
-            dispatch_classifier: DispatchClassifier instance
+            incident_classifier: IncidentClassifier instance (for LangGraph nodes)
+            severity_classifier: SeverityClassifier instance (for LangGraph nodes)
+            dispatch_classifier: DispatchClassifier instance (for LangGraph nodes)
             db_config: Database configuration dictionary
         """
         self.realtime_audio_service = realtime_audio_service
@@ -40,7 +44,7 @@ class realtimeAudioController:
         self.severity_classifier = severity_classifier
         self.dispatch_classifier = dispatch_classifier
         self.db_config = db_config
-        logger.info("realtime Audio Controller initialized")
+        logger.info("realtime Audio Controller initialized (using LangGraph workflow)")
 
     def _get_db_connection(self):
         """Get a PostgreSQL database connection."""
@@ -59,7 +63,12 @@ class realtimeAudioController:
         target_language: str = "ar"
     ) -> Dict[str, Any]:
         """
-        Analyze realtime audio file through complete workflow.
+        Analyze realtime audio file through LangGraph workflow.
+
+        Workflow:
+        1. faster-whisper STT (in service layer)
+        2. Optional translation (in service layer)
+        3. LangGraph workflow: Language Detection → Incident → Severity → Dispatch → Evaluation
 
         Args:
             audio_path: Path to audio file
@@ -72,78 +81,122 @@ class realtimeAudioController:
         try:
             logger.info(f"Processing realtime audio: translate={translate}, target_language={target_language}")
 
-            # Process through service layer
-            result = self.realtime_audio_service.process_audio_file(
-                audio_path=audio_path,
-                translate=translate,
-                target_language=target_language,
-                incident_classifier=self.incident_classifier,
-                severity_classifier=self.severity_classifier,
-                dispatch_classifier=self.dispatch_classifier
-            )
-
             # Generate case ID
             case_id = str(uuid.uuid4())
 
-            # Extract classification results
-            classification = result.get("classification", {})
-            incident_data = classification.get("incident", {})
-            severity_data = classification.get("severity", {})
-            dispatch_data = classification.get("dispatch", {})
+            # Step 1: STT + optional translation through service layer
+            stt_result = self.realtime_audio_service.transcribe_and_translate(
+                audio_path=audio_path,
+                translate=translate,
+                target_language=target_language
+            )
 
-            # Build response with all required fields
+            original_transcript = stt_result.get("original_transcript", "")
+            detected_language = stt_result.get("detected_language", "unknown")
+            segments = stt_result.get("segments", [])
+            translated_text = stt_result.get("translated_text")
+            translated_language = stt_result.get("translated_language")
+
+            # Step 2: Select text for classification
+            # If translated, use translated text; otherwise use original
+            if translate and translated_text:
+                text_for_classification = translated_text
+                classification_language = target_language
+                logger.info(f"Using TRANSLATED text for LangGraph classification (lang={classification_language})")
+            else:
+                text_for_classification = original_transcript
+                classification_language = detected_language
+                logger.info(f"Using ORIGINAL text for LangGraph classification (lang={classification_language})")
+
+            # Step 3: Create initial state and invoke LangGraph workflow
+            initial_state = create_initial_state_from_transcript(
+                transcript=text_for_classification,
+                case_id=case_id,
+                detected_language=classification_language,
+                language_probability=0.95,  # faster-whisper provides high confidence
+                segments=segments
+            )
+
+            # Get the compiled LangGraph (initialized in main.py)
+            graph = get_emergency_graph()
+            config = {"configurable": {"thread_id": case_id}}
+
+            logger.info(f"Invoking LangGraph workflow for case {case_id}")
+            start_time = datetime.now()
+            result = graph.invoke(initial_state, config)
+            processing_time_ms = (datetime.now() - start_time).total_seconds() * 1000
+            logger.info(f"LangGraph workflow completed in {processing_time_ms:.1f}ms")
+
+            # Step 4: Build response from LangGraph result
             response = {
                 "case_id": case_id,
-                "transcript": result.get("original_transcript", ""),
-                "detected_language": result.get("detected_language", "unknown"),
-                "language_confidence": 1.0,  # Faster-whisper provides high confidence
-                "incident_type": incident_data.get("incident_type", "UNKNOWN"),
-                "incident_confidence": incident_data.get("confidence", 0.0),
-                "severity_level": severity_data.get("severity_level", "MEDIUM"),
-                "severity_confidence": severity_data.get("confidence", 0.0),
-                "dispatch_unit": dispatch_data.get("dispatch_unit", "POLICE"),
-                "dispatch_confidence": dispatch_data.get("confidence", 0.0),
-                "processing_status": "completed"
-            }
+                "status": "success",
 
-            # Add translation fields if applicable
-            if translate and result.get("translated_text"):
-                response["translated_text"] = result.get("translated_text")
-                response["translated_language"] = result.get("translated_language")
-            else:
-                response["translated_text"] = None
-                response["translated_language"] = None
+                # Transcript section - always includes both original and translated
+                "transcription": {
+                    "original_text": original_transcript,
+                    "original_language": detected_language,
+                    "translated_text": translated_text if translate and translated_text else None,
+                    "translated_language": translated_language if translate and translated_text else None,
+                    "translation_enabled": translate,
+                    "text_used_for_classification": text_for_classification,
+                    "classification_language": classification_language
+                },
+
+                # Legacy fields for backward compatibility
+                "transcript": original_transcript,
+                "detected_language": detected_language,
+                "translated_text": translated_text if translate and translated_text else None,
+                "translated_language": translated_language if translate and translated_text else None,
+
+                # Classification results
+                "language_confidence": result.get("language_confidence", 0.0),
+                "incident_type": result.get("incident_type", "UNKNOWN"),
+                "incident_confidence": result.get("incident_confidence", 0.0),
+                "severity_level": result.get("severity_level", "MEDIUM"),
+                "severity_confidence": result.get("severity_confidence", 0.0),
+                "dispatch_unit": result.get("dispatch_unit", "POLICE"),
+                "dispatch_confidence": result.get("dispatch_confidence", 0.0),
+                "processing_status": result.get("processing_status", "completed"),
+                "requires_human_review": result.get("requires_human_review", False),
+                "overall_quality_score": result.get("overall_quality_score", 0.0)
+            }
 
             # Add detailed classification results
             response["classification_details"] = {
                 "incident": {
-                    "type": incident_data.get("incident_type", "UNKNOWN"),
-                    "confidence": incident_data.get("confidence", 0.0),
-                    "reasoning": incident_data.get("reasoning", ""),
-                    "keywords_found": incident_data.get("keywords_found", [])
+                    "type": result.get("incident_type", "UNKNOWN"),
+                    "confidence": result.get("incident_confidence", 0.0),
+                    "reasoning": result.get("incident_reasoning", ""),
+                    "keywords_found": result.get("keywords_found", [])
                 },
                 "severity": {
-                    "level": severity_data.get("severity_level", "MEDIUM"),
-                    "confidence": severity_data.get("confidence", 0.0),
-                    "reasoning": severity_data.get("reasoning", ""),
-                    "urgency_indicators": severity_data.get("urgency_indicators", [])
+                    "level": result.get("severity_level", "MEDIUM"),
+                    "confidence": result.get("severity_confidence", 0.0),
+                    "reasoning": result.get("severity_reasoning", ""),
+                    "urgency_indicators": result.get("urgency_indicators", [])
                 },
                 "dispatch": {
-                    "unit": dispatch_data.get("dispatch_unit", "POLICE"),
-                    "confidence": dispatch_data.get("confidence", 0.0),
-                    "reasoning": dispatch_data.get("reasoning", ""),
-                    "estimated_priority": dispatch_data.get("estimated_priority", "Priority 3")
+                    "unit": result.get("dispatch_unit", "POLICE"),
+                    "confidence": result.get("dispatch_confidence", 0.0),
+                    "reasoning": result.get("dispatch_reasoning", ""),
+                    "estimated_priority": result.get("estimated_priority", "Priority 3")
                 }
             }
 
-            # Determine if requires human review based on confidence scores
-            avg_confidence = (
-                response["incident_confidence"] +
-                response["severity_confidence"] +
-                response["dispatch_confidence"]
-            ) / 3.0
+            # Add evaluation details
+            response["evaluation"] = {
+                "overall_confidence": result.get("overall_quality_score", 0.0),
+                "requires_human_review": result.get("requires_human_review", False),
+                "concerns": result.get("concerns", []),
+                "summary": result.get("evaluation_summary", "")
+            }
 
-            response["requires_human_review"] = avg_confidence < 0.75
+            # Add processing metrics
+            response["processing_metrics"] = {
+                "langgraph_time_ms": round(processing_time_ms, 1),
+                "timestamps": result.get("timestamps", {})
+            }
 
             # Store in database
             self._store_realtime_audio_case(case_id, response)
@@ -152,7 +205,7 @@ class realtimeAudioController:
             return response
 
         except Exception as e:
-            logger.error(f"realtime audio analysis failed: {e}")
+            logger.error(f"realtime audio analysis failed: {e}", exc_info=True)
             return {
                 "error": str(e),
                 "status": "failed",

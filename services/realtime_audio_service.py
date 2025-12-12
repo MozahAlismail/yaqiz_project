@@ -183,6 +183,65 @@ class realtimeAudioService:
 
         return result
 
+    def transcribe_and_translate(
+        self,
+        audio_path: str,
+        translate: bool = True,
+        target_language: str = "ar"
+    ) -> Dict[str, Any]:
+        """
+        Transcribe audio and optionally translate (STT only, no classification).
+
+        This method is used by the controller which then invokes LangGraph
+        for classification separately.
+
+        Workflow:
+        1. Transcribe audio using faster-whisper
+        2. Optionally translate using TranslationModel
+
+        Args:
+            audio_path: Path to the audio file
+            translate: Whether to translate the transcript
+            target_language: Target language for translation
+
+        Returns:
+            Dictionary with transcript, language, segments, and optional translation
+        """
+        logger.info(f"Transcribing audio file: {audio_path}")
+
+        # Step 1: Transcribe audio using faster-whisper
+        full_transcript, detected_language, segments = self.transcribe_audio_file(audio_path)
+
+        result = {
+            "original_transcript": full_transcript,
+            "detected_language": detected_language,
+            "segments": segments,
+            "translated_text": None,
+            "translated_language": None
+        }
+
+        # Step 2: Conditional translation
+        if translate and self.translation_model:
+            logger.info(f"Translating transcript to {target_language}")
+            try:
+                translation_result = self.translate_text(
+                    full_transcript,
+                    target_language,
+                    source_language=detected_language
+                )
+
+                if translation_result.get("status") == "success":
+                    result["translated_text"] = translation_result["translated_text"]
+                    result["translated_language"] = target_language
+                    logger.info("Translation successful")
+                else:
+                    logger.warning(f"Translation failed: {translation_result.get('error')}")
+            except Exception as e:
+                logger.error(f"Translation failed: {e}")
+
+        logger.info("Transcription and translation complete")
+        return result
+
     def process_audio_file(
         self,
         audio_path: str,

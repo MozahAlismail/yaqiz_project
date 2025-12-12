@@ -26,6 +26,7 @@ openai
 # Audio Processing - Local STT
 # ============================================
 faster-whisper
+openai-whisper
 
 # ============================================
 # Language Detection

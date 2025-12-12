@@ -19,12 +19,22 @@ interface QuickTag {
   variant: 'urgent' | 'accident' | 'injury' | 'fire' | 'custom';
 }
 
+interface TranscriptionData {
+  original_text: string;
+  original_language: string;
+  translated_text: string | null;
+  translated_language: string | null;
+  translation_enabled: boolean;
+}
+
 interface RealtimeIncidentViewProps {
   callDuration: number;
   isLive: boolean;
   isSaving: boolean;
   isAutoSaving: boolean;
   transcriptionSegments: TextSegment[];
+  /** New: Transcription data with both original and translated text */
+  transcriptionData?: TranscriptionData | null;
   reportType: string;
   severity: SeverityLevel | '';
   responsibleAuthority: string;
@@ -57,6 +67,7 @@ export const RealtimeIncidentView: React.FC<RealtimeIncidentViewProps> = ({
   isSaving,
   isAutoSaving,
   transcriptionSegments,
+  transcriptionData,
   reportType,
   severity,
   responsibleAuthority,
@@ -97,6 +108,8 @@ export const RealtimeIncidentView: React.FC<RealtimeIncidentViewProps> = ({
           <div className="lg:col-span-5 space-y-4">
             <TranscriptionPanel
               segments={transcriptionSegments}
+              transcriptionData={transcriptionData}
+              isTranslationEnabled={isTranslationEnabled}
               onEditText={onEditText}
             />
           </div>

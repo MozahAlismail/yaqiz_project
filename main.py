@@ -18,6 +18,7 @@ from models.severity_classifier import create_severity_classifier
 from models.dispatch_classifier import create_dispatch_classifier
 from models.rlhf_trainer import create_rlhf_trainer
 from models.translation_model import create_translation_model
+from models.stt_model import create_stt_model
 
 # Import agents
 from agents.language_detection_agent import LanguageDetectionAgent
@@ -34,6 +35,16 @@ from controllers.realtime_audio_controller import realtimeAudioController
 # Import LangGraph workflow
 from graph.workflow import create_emergency_graph, get_emergency_graph
 
+# Import streaming LangGraph workflow
+from graph.streaming_workflow import create_streaming_graph, get_streaming_graph
+
+# Import audio analysis LangGraph workflow
+from graph.audio_analysis_workflow import (
+    create_audio_analysis_graph,
+    get_audio_analysis_graph,
+    invoke_audio_analysis
+)
+
 # Import routers
 from api.audio_router import router as audio_router
 from api.feedback_router import router as feedback_router
@@ -43,10 +54,15 @@ from api.health_router import router as health_router
 from api.analytics_router import router as analytics_router
 from api.realtime_audio_router import router as realtime_audio_router
 from api.websocket_audio_router import router as websocket_audio_router
+from api.streaming_review_router import router as streaming_review_router
 
 # Import services
 from services.realtime_audio_service import create_realtime_audio_service
 from services.websocket_audio_service import create_websocket_audio_service
+from services.streaming_graph_service import create_streaming_graph_service
+
+# Import streaming controllers
+from controllers.streaming_case_controller import create_streaming_case_controller
 
 # Initialize database
 from data.init_db import initialize_databases
@@ -65,10 +81,19 @@ _dispatch_classifier = None
 _emergency_graph = None
 _language_model = None
 
+# Streaming workflow instances
+_streaming_graph = None
+_streaming_graph_service = None
+_streaming_case_controller = None
+
+# Audio analysis workflow instances
+_stt_model = None
+_audio_analysis_graph = None
+
 
 def load_config(config_path: str = "config/config.yaml") -> dict:
     """Load configuration from YAML file."""
-    with open(config_path, 'r') as f:
+    with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
@@ -89,6 +114,8 @@ def initialize_system():
     global _realtime_audio_controller, _websocket_audio_service, _translation_model
     global _incident_classifier, _severity_classifier, _dispatch_classifier
     global _emergency_graph, _language_model
+    global _streaming_graph, _streaming_graph_service, _streaming_case_controller
+    global _stt_model, _audio_analysis_graph
 
     # Load configuration
     _config = load_config()
@@ -101,13 +128,14 @@ def initialize_system():
     initialize_databases()
 
     # Create models (store in globals for graph access)
-    # Note: STT is handled externally via faster-whisper services
     _language_model = create_language_model(_config)
     _incident_classifier = create_incident_classifier(_config)
     _severity_classifier = create_severity_classifier(_config)
     _dispatch_classifier = create_dispatch_classifier(_config)
     _rlhf_trainer = create_rlhf_trainer(_config)
     _translation_model = create_translation_model(_config)
+    _stt_model = create_stt_model(_config)
+    logger.info("STT model initialized (OpenAI Whisper API)")
 
     # Initialize LangGraph emergency workflow
     # Note: STT is handled externally via faster-whisper services
@@ -121,6 +149,19 @@ def initialize_system():
         enable_checkpointing=_config.get("hitl", {}).get("enabled", True)
     )
     logger.info("LangGraph emergency dispatch workflow initialized")
+
+    # Initialize Audio Analysis LangGraph workflow (with STT node)
+    logger.info("Initializing Audio Analysis LangGraph workflow")
+    _audio_analysis_graph = create_audio_analysis_graph(
+        stt_model=_stt_model,
+        language_model=_language_model,
+        incident_classifier=_incident_classifier,
+        severity_classifier=_severity_classifier,
+        dispatch_classifier=_dispatch_classifier,
+        config=_config,
+        enable_checkpointing=True
+    )
+    logger.info("Audio Analysis LangGraph workflow initialized")
 
     # Create agents (still needed for legacy support and other services)
     # Note: STT is handled externally via faster-whisper services
@@ -174,6 +215,42 @@ def initialize_system():
         severity_clf=_severity_classifier,
         dispatch_clf=_dispatch_classifier
     )
+
+    # ==============================================================
+    # Initialize Streaming LangGraph (NEW - separate from batch graph)
+    # ==============================================================
+    logger.info("Initializing Streaming LangGraph workflow")
+
+    # Create streaming graph
+    _streaming_graph = create_streaming_graph(
+        language_model=_language_model,
+        incident_classifier=_incident_classifier,
+        severity_classifier=_severity_classifier,
+        dispatch_classifier=_dispatch_classifier,
+        config=_config,
+        enable_checkpointing=True
+    )
+
+    # Create streaming graph service
+    _streaming_graph_service = create_streaming_graph_service(_config)
+
+    # Create streaming case controller
+    _streaming_case_controller = create_streaming_case_controller(
+        _config.get("database", {})
+    )
+
+    # Initialize streaming review router
+    from api.streaming_review_router import init_streaming_review_router
+    init_streaming_review_router(_config.get("database", {}))
+
+    # Initialize streaming WebSocket support
+    from api.websocket_audio_router import init_streaming_services
+    init_streaming_services(
+        graph_service=_streaming_graph_service,
+        case_controller=_streaming_case_controller
+    )
+
+    logger.info("Streaming LangGraph workflow initialized")
 
     logger.info("System initialization complete")
 
@@ -233,6 +310,31 @@ def get_language_model():
     return _language_model
 
 
+def get_streaming_graph():
+    """Get the compiled streaming LangGraph workflow."""
+    return _streaming_graph
+
+
+def get_streaming_graph_service():
+    """Get streaming graph service instance."""
+    return _streaming_graph_service
+
+
+def get_streaming_case_controller():
+    """Get streaming case controller instance."""
+    return _streaming_case_controller
+
+
+def get_stt_model():
+    """Get STT model instance (OpenAI Whisper API)."""
+    return _stt_model
+
+
+def get_audio_analysis_graph_instance():
+    """Get the compiled audio analysis LangGraph workflow."""
+    return _audio_analysis_graph
+
+
 # Create FastAPI app
 app = FastAPI(
     title="AI Emergency Dispatch Assistant",
@@ -258,6 +360,7 @@ app.include_router(health_router)
 app.include_router(analytics_router)
 app.include_router(realtime_audio_router)
 app.include_router(websocket_audio_router)
+app.include_router(streaming_review_router)
 
 
 @app.on_event("startup")
