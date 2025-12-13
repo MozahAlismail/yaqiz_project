@@ -139,27 +139,27 @@ class realtimeAudioController:
                     "translated_text": translated_text if translate and translated_text else None,
                     "translated_language": translated_language if translate and translated_text else None,
                     "translation_enabled": translate,
-                    "text_used_for_classification": text_for_classification,
-                    "classification_language": classification_language
+                     #"text_used_for_classification": text_for_classification,
+                     #"classification_language": classification_language
                 },
 
-                # Legacy fields for backward compatibility
-                "transcript": original_transcript,
-                "detected_language": detected_language,
-                "translated_text": translated_text if translate and translated_text else None,
-                "translated_language": translated_language if translate and translated_text else None,
+                # # Legacy fields for backward compatibility
+                # "transcript": original_transcript,
+                # "detected_language": detected_language,
+                # "translated_text": translated_text if translate and translated_text else None,
+                # "translated_language": translated_language if translate and translated_text else None,
 
-                # Classification results
-                "language_confidence": result.get("language_confidence", 0.0),
-                "incident_type": result.get("incident_type", "UNKNOWN"),
-                "incident_confidence": result.get("incident_confidence", 0.0),
-                "severity_level": result.get("severity_level", "MEDIUM"),
-                "severity_confidence": result.get("severity_confidence", 0.0),
-                "dispatch_unit": result.get("dispatch_unit", "POLICE"),
-                "dispatch_confidence": result.get("dispatch_confidence", 0.0),
-                "processing_status": result.get("processing_status", "completed"),
-                "requires_human_review": result.get("requires_human_review", False),
-                "overall_quality_score": result.get("overall_quality_score", 0.0)
+                # # Classification results
+                # "language_confidence": result.get("language_confidence", 0.0),
+                # "incident_type": result.get("incident_type", "UNKNOWN"),
+                # "incident_confidence": result.get("incident_confidence", 0.0),
+                # "severity_level": result.get("severity_level", "MEDIUM"),
+                # "severity_confidence": result.get("severity_confidence", 0.0),
+                # "dispatch_unit": result.get("dispatch_unit", "POLICE"),
+                # "dispatch_confidence": result.get("dispatch_confidence", 0.0),
+                # "processing_status": result.get("processing_status", "completed"),
+                # "requires_human_review": result.get("requires_human_review", False),
+                # "overall_quality_score": result.get("overall_quality_score", 0.0)
             }
 
             # Add detailed classification results

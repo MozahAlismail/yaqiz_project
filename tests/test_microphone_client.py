@@ -8,8 +8,11 @@ Requirements:
     pip install websockets pyaudio
 
 Usage:
-    python tests/test_microphone_client.py                    # Default: streaming mode, no translation
-    python tests/test_microphone_client.py --mode streaming   # Streaming mode with language detection
+    python tests/test_microphone_client.py                    # Default: streaming mode, auto-detect language
+    python tests/test_microphone_client.py --language auto    # Auto-detect language (Whisper decides)
+    python tests/test_microphone_client.py --language ar      # Force Arabic language detection
+    python tests/test_microphone_client.py --language en      # Force English language detection
+    python tests/test_microphone_client.py --mode streaming   # Streaming mode
     python tests/test_microphone_client.py --mode direct      # Direct mode (original behavior)
     python tests/test_microphone_client.py --translate        # Enable translation to Arabic
     python tests/test_microphone_client.py --translate --target-language en  # Translate to English
@@ -21,7 +24,7 @@ Audio Format:
 
 Note:
     Translation is DISABLED by default. Use --translate to enable.
-    Language detection (via Whisper STT) is always active.
+    Use --language to force detected language (ar, en) or 'auto' for auto-detect. Default is 'auto'.
 """
 
 import asyncio
@@ -64,7 +67,8 @@ class MicrophoneStreamingClient:
         port: int = 8000,
         mode: str = "streaming",
         translate: bool = False,
-        target_language: str = "ar"
+        target_language: str = "ar",
+        language: str = "auto"
     ):
         """Initialize the microphone client.
 
@@ -74,19 +78,27 @@ class MicrophoneStreamingClient:
             mode: Processing mode ('streaming' or 'direct')
             translate: Enable translation (disabled by default)
             target_language: Target language for translation (when enabled)
+            language: Force detected language ('ar', 'en') or 'auto' for auto-detect
         """
         self.host = host
         self.port = port
         self.mode = mode
         self.translate = translate
         self.target_language = target_language
+        self.language = language
 
-        # Build WebSocket URI
-        self.uri = (
+        # Build WebSocket URI - only add language param if not auto
+        base_uri = (
             f"ws://{host}:{port}/ws/live-audio-stream"
             f"?mode={mode}&translate={str(translate).lower()}"
             f"&target_language={target_language}"
         )
+
+        # Add language parameter (server handles 'auto' as None)
+        if language and language != "auto":
+            self.uri = f"{base_uri}&language={language}"
+        else:
+            self.uri = base_uri  # No language param = auto-detect
 
         self.running = False
         self.audio = None
@@ -134,6 +146,10 @@ class MicrophoneStreamingClient:
         print("=" * 60)
         print(f"Server: {self.uri}")
         print(f"Mode: {self.mode}")
+        if self.language == "auto":
+            print("Language: auto-detect (Whisper will detect)")
+        else:
+            print(f"Language: {self.language} (forced)")
         print(f"Translate: {self.translate} -> {self.target_language}")
         print("Press Ctrl+C to stop\n")
 
@@ -227,8 +243,11 @@ class MicrophoneStreamingClient:
         elif result_type == "final":
             self._display_final(result)
         elif result_type == "session_started":
-            print(f"Session started: translate={result.get('translate')}, "
-                  f"target_language={result.get('target_language')}")
+            lang_mode = result.get('language_mode', 'unknown')
+            lang = result.get('language') or 'auto-detect'
+            print(f"Session started:")
+            print(f"  Language: {lang} ({lang_mode})")
+            print(f"  Translate: {result.get('translate')} -> {result.get('target_language')}")
         elif result_type == "error":
             print(f"ERROR: {result.get('error')}")
         else:
@@ -351,6 +370,10 @@ def main():
         help="Processing mode (default: streaming)"
     )
     parser.add_argument(
+        "--language", "-l", choices=["auto", "ar", "en"], default="auto",
+        help="Language mode: 'auto' for auto-detect, 'ar' for Arabic, 'en' for English (default: auto)"
+    )
+    parser.add_argument(
         "--translate", action="store_true",
         help="Enable translation (disabled by default)"
     )
@@ -366,7 +389,8 @@ def main():
         port=args.port,
         mode=args.mode,
         translate=args.translate,
-        target_language=args.target_language
+        target_language=args.target_language,
+        language=args.language
     )
 
     # Handle Ctrl+C gracefully

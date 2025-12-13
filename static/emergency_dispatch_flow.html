@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Dispatch LangGraph Flow</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: #f8fafc;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+        .warning-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+        .diagram-container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow-x: auto;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+        .legend-color.input { background: #DBEAFE; border: 2px solid #2563EB; }
+        .legend-color.process { background: #EEF2FF; border: 2px solid #4F46E5; }
+        .legend-color.decision { background: #FEF3C7; border: 2px solid #D97706; }
+        .legend-color.urgent { background: #FEE2E2; border: 2px solid #DC2626; }
+        .legend-color.complete { background: #D1FAE5; border: 2px solid #059669; }
+        .legend-color.database { background: #F3E8FF; border: 2px solid #7C3AED; }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Streaming Emergency Dispatch LangGraph</h1>
+            <p class="subtitle">Real-time Audio Processing & Classification Pipeline</p>
+            <span class="warning-badge">ALL Cases Require Human Review - NO Auto-Dispatch</span>
+        </header>
+
+        <div class="diagram-container">
+            <div class="mermaid">
+flowchart TD
+    subgraph INPUT["Audio Input"]
+        WS[/"WebSocket receives PCM audio"/]
+        STT["Whisper STT<br/>Transcribes audio chunk"]
+    end
+
+    subgraph LANGGRAPH["STREAMING EMERGENCY DISPATCH LANGGRAPH"]
+        START(["START<br/>StreamingEmergencyState"])
+
+        LD["1. LANGUAGE_DETECTION<br/>• Verify language from Whisper<br/>• Check if supported (ar, en)<br/>• Track timing metrics"]
+
+        SUPPORTED{Supported?}
+
+        ULH["UNSUPPORTED_LANGUAGE_HANDLER<br/>• SKIP all classification<br/>• review_priority = 'urgent'<br/>• Human must manually process"]
+
+        IC["2. INCIDENT_CLASSIFICATION<br/>• Classify: MEDICAL, FIRE, POLICE<br/>• Track timing metrics"]
+
+        SC["3. SEVERITY_CLASSIFICATION<br/>• Classify: CRITICAL, HIGH, MEDIUM, LOW<br/>• Track timing metrics"]
+
+        DC["4. DISPATCH_CLASSIFICATION<br/>• Determine unit: POLICE, FIRE, AMBULANCE<br/>• Calculate estimated priority"]
+
+        CG["5. CONFIDENCE_GATE<br/>avg_conf = (incident + severity + dispatch) / 3<br/>threshold: 0.75 | window: 10s"]
+
+        CRIT{"Critical &<br/>conf ≥ 0.6?"}
+        TIMEOUT{"Timeout &<br/>low conf?"}
+        CONFMET{"Confidence<br/>met?"}
+
+        SC_NODE["6. STREAMING_COMPLETE<br/>• Finalize case<br/>• Set review_priority<br/>• requires_review = TRUE"]
+    end
+
+    DB[("DATABASE<br/>cases table")]
+
+    HRQ["HUMAN REVIEW QUEUE<br/>1. URGENT (language)<br/>2. URGENT (critical)<br/>3. HIGH (timeout)<br/>4. NORMAL (confident)"]
+
+    FB[("FEEDBACK<br/>• Human corrections<br/>• For RLHF training")]
+
+    ENDNODE(["END<br/>Ready for dispatch"])
+
+    WS --> STT
+    STT --> START
+    START --> LD
+    LD --> SUPPORTED
+
+    SUPPORTED -->|"Supported"| IC
+    SUPPORTED -->|"Unsupported"| ULH
+    ULH --> SC_NODE
+
+    IC --> SC
+    SC --> DC
+    DC --> CG
+
+    CG --> CRIT
+    CRIT -->|"Yes"| SC_NODE
+    CRIT -->|"No"| TIMEOUT
+    TIMEOUT -->|"Yes"| SC_NODE
+    TIMEOUT -->|"No"| CONFMET
+    CONFMET -->|"Yes"| SC_NODE
+    CONFMET -->|"No"| STT
+
+    SC_NODE --> DB
+    DB --> HRQ
+    HRQ --> FB
+    FB --> ENDNODE
+
+    classDef inputNode fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E40AF
+    classDef processNode fill:#EEF2FF,stroke:#4F46E5,stroke-width:2px,color:#312E81
+    classDef decisionNode fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#92400E
+    classDef urgentNode fill:#FEE2E2,stroke:#DC2626,stroke-width:2px,color:#991B1B
+    classDef completeNode fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#065F46
+    classDef dbNode fill:#F3E8FF,stroke:#7C3AED,stroke-width:2px,color:#5B21B6
+    classDef startEnd fill:#1F2937,stroke:#111827,stroke-width:2px,color:#F9FAFB
+
+    class WS,STT inputNode
+    class LD,IC,SC,DC,CG processNode
+    class SUPPORTED,CRIT,TIMEOUT,CONFMET decisionNode
+    class ULH urgentNode
+    class SC_NODE,HRQ completeNode
+    class DB,FB dbNode
+    class START,ENDNODE startEnd
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color input"></div>
+                <span>Audio Input (WebSocket/STT)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color process"></div>
+                <span>Processing Nodes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color decision"></div>
+                <span>Decision Points</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color urgent"></div>
+                <span>Urgent/Error Handling</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color complete"></div>
+                <span>Completion/Review</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color database"></div>
+                <span>Database Storage</span>
+            </div>
+        </div>
+
+        <footer>
+            <p>Emergency Dispatch System - Human Review Required for All Cases</p>
+        </footer>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#4F46E5',
+                primaryTextColor: '#1f2937',
+                primaryBorderColor: '#3730A3',
+                lineColor: '#6366F1',
+                secondaryColor: '#F3F4F6',
+                tertiaryColor: '#EEF2FF',
+                fontSize: '14px'
+            },
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis',
+                padding: 20,
+                nodeSpacing: 50,
+                rankSpacing: 70
+            }
+        });
+    </script>
+</body>
+</html>

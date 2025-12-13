@@ -141,13 +141,19 @@ class WebSocketAudioService:
 
         return audio_float32
 
-    def transcribe_buffer(self, session_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def transcribe_buffer(
+        self,
+        session_state: Dict[str, Any],
+        forced_language: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
         """Transcribe audio buffer without classification (for streaming mode).
 
         This method only does STT - classification is handled by streaming LangGraph.
 
         Args:
             session_state: Current session state with audio buffer
+            forced_language: Force language for transcription ('ar', 'en', etc.)
+                            If None, auto-detect language.
 
         Returns:
             Dictionary with transcript text, language, and timing info
@@ -169,18 +175,23 @@ class WebSocketAudioService:
             duration = len(pcm_data) / (self.sample_rate * 2)
             session_state["total_audio_duration"] += duration
 
+            # Determine transcription language
+            transcribe_language = forced_language if forced_language else None
+            if transcribe_language:
+                logger.debug(f"Using forced language for STT: {transcribe_language}")
+
             # Transcribe with Faster-Whisper
             stt_start = datetime.now()
             segments, info = self.whisper_model.transcribe(
                 audio_array,
                 beam_size=5,
                 vad_filter=True,
-                language=None  # Auto-detect
+                language=transcribe_language  # Use forced language or auto-detect
             )
             stt_time_ms = (datetime.now() - stt_start).total_seconds() * 1000
 
-            # Extract detected language
-            detected_language = info.language
+            # Extract detected language (will be the forced language if specified)
+            detected_language = forced_language if forced_language else info.language
 
             # Collect segment texts
             segment_texts = []

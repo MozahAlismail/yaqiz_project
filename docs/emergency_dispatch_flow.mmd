@@ -1,0 +1,99 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4F46E5', 'primaryTextColor': '#fff', 'primaryBorderColor': '#3730A3', 'lineColor': '#6366F1', 'secondaryColor': '#F3F4F6', 'tertiaryColor': '#EEF2FF'}}}%%
+
+flowchart TD
+    subgraph INPUT["<b>Audio Input</b>"]
+        WS[/"WebSocket receives PCM audio"/]
+        STT["Whisper STT<br/>Transcribes audio chunk"]
+    end
+
+    subgraph LANGGRAPH["<b>STREAMING EMERGENCY DISPATCH LANGGRAPH</b><br/><i>All Cases Require Human Review - NO Auto-Dispatch</i>"]
+        START(["START<br/><i>StreamingEmergencyState with<br/>accumulated transcript</i>"])
+
+        subgraph LANG["1. Language Detection"]
+            LD["LANGUAGE_DETECTION<br/>• Verify language from Whisper<br/>• Check if supported (ar, en)<br/>• Track timing metrics"]
+        end
+
+        SUPPORTED{Supported?}
+
+        subgraph UNSUP["Unsupported Language Handler"]
+            ULH["UNSUPPORTED_LANGUAGE_HANDLER<br/>• SKIP all classification<br/>• review_priority = 'urgent'<br/>• Provide clear reason message<br/>• Human must manually process"]
+        end
+
+        subgraph CLASS["Classification Pipeline"]
+            IC["2. INCIDENT_CLASSIFICATION<br/>• Classify type: MEDICAL, FIRE,<br/>  POLICE, etc.<br/>• Track timing metrics"]
+
+            SC["3. SEVERITY_CLASSIFICATION<br/>• Classify: CRITICAL, HIGH,<br/>  MEDIUM, LOW<br/>• Track timing metrics"]
+
+            DC["4. DISPATCH_CLASSIFICATION<br/>• Determine unit: POLICE, FIRE,<br/>  AMBULANCE, etc.<br/>• Calculate estimated priority<br/>• Track timing metrics"]
+        end
+
+        subgraph GATE["5. Confidence Gate (Time-Bounded)"]
+            CG["CONFIDENCE_GATE<br/>────────────────────<br/>avg_conf = (incident + severity + dispatch) / 3<br/>elapsed = now() - evaluation_start<br/>────────────────────<br/>threshold: 0.75 | window: 10s"]
+
+            CRIT{"Critical Severity<br/>& conf ≥ 0.6?"}
+            TIMEOUT{"Elapsed ≥ 10s<br/>& avg_conf < 0.75?"}
+            CONFMET{"avg_conf ≥ 0.75<br/>OR elapsed ≥ 10s?"}
+        end
+
+        subgraph COMPLETE["6. Streaming Complete"]
+            SC_NODE["STREAMING_COMPLETE<br/>• Finalize case<br/>• Set review_priority<br/>• requires_review = TRUE<br/>• Calculate total processing time"]
+        end
+    end
+
+    subgraph DATABASE["<b>Database Storage</b>"]
+        DB[("SAVE TO DATABASE<br/>(cases table)<br/>• All case data<br/>• Processing metrics<br/>• review_priority<br/>• requires_review = TRUE")]
+    end
+
+    subgraph REVIEW["<b>Human Review Queue</b>"]
+        HRQ["HUMAN REVIEW QUEUE<br/>────────────────────<br/><b>Priority Order:</b><br/>1. URGENT (unsupported language)<br/>2. URGENT (critical severity)<br/>3. HIGH (timeout)<br/>4. NORMAL (confident)<br/>────────────────────<br/><b>Operator Actions:</b><br/>• Reviews AI results<br/>• Corrects if needed<br/>• Approves dispatch"]
+    end
+
+    subgraph FEEDBACK["<b>Feedback Loop</b>"]
+        FB[("SAVE TO FEEDBACK<br/>(feedback table)<br/>• Human corrections<br/>• Reviewer ID<br/>• For RLHF training")]
+    end
+
+    ENDNODE(["END<br/><i>Human approved -<br/>ready for dispatch</i>"])
+
+    %% Flow connections
+    WS --> STT
+    STT --> START
+    START --> LD
+    LD --> SUPPORTED
+
+    SUPPORTED -->|"Supported<br/>(ar, en)"| IC
+    SUPPORTED -->|"Unsupported"| ULH
+    ULH --> SC_NODE
+
+    IC --> SC
+    SC --> DC
+    DC --> CG
+
+    CG --> CRIT
+    CRIT -->|"Yes"| SC_NODE
+    CRIT -->|"No"| TIMEOUT
+    TIMEOUT -->|"Yes"| SC_NODE
+    TIMEOUT -->|"No"| CONFMET
+    CONFMET -->|"Yes"| SC_NODE
+    CONFMET -->|"No<br/>(continue)"| STT
+
+    SC_NODE --> DB
+    DB --> HRQ
+    HRQ --> FB
+    FB --> ENDNODE
+
+    %% Styling
+    classDef inputNode fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E40AF
+    classDef processNode fill:#EEF2FF,stroke:#4F46E5,stroke-width:2px,color:#312E81
+    classDef decisionNode fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#92400E
+    classDef urgentNode fill:#FEE2E2,stroke:#DC2626,stroke-width:2px,color:#991B1B
+    classDef completeNode fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#065F46
+    classDef dbNode fill:#F3E8FF,stroke:#7C3AED,stroke-width:2px,color:#5B21B6
+    classDef startEnd fill:#1F2937,stroke:#111827,stroke-width:2px,color:#F9FAFB
+
+    class WS,STT inputNode
+    class LD,IC,SC,DC,CG processNode
+    class SUPPORTED,CRIT,TIMEOUT,CONFMET decisionNode
+    class ULH urgentNode
+    class SC_NODE,HRQ completeNode
+    class DB,FB dbNode
+    class START,ENDNODE startEnd

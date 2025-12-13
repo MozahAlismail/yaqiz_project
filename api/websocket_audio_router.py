@@ -162,7 +162,8 @@ async def websocket_audio_stream(
     websocket: WebSocket,
     translate: Optional[bool] = Query(default=True, description="Enable translation"),
     target_language: Optional[str] = Query(default="ar", description="Target language code"),
-    mode: Optional[str] = Query(default="direct", description="Processing mode: 'direct' or 'streaming'")
+    mode: Optional[str] = Query(default="direct", description="Processing mode: 'direct' or 'streaming'"),
+    language: Optional[str] = Query(default=None, description="Force language: 'ar', 'en', or None for auto-detect")
 ):
     """WebSocket endpoint for real-time PCM audio streaming with continuous analysis.
 
@@ -178,7 +179,7 @@ async def websocket_audio_stream(
     - Sends final summary on session end
 
     Session Configuration:
-        - Can be set via query params (translate, target_language, mode)
+        - Can be set via query params (translate, target_language, mode, language)
         - Or via initial JSON control message
 
     Message Flow:
@@ -190,28 +191,40 @@ async def websocket_audio_stream(
         translate: Enable translation (default: True)
         target_language: Target language for translation (default: "ar")
         mode: Processing mode - 'direct' or 'streaming' (default: "direct")
+        language: Force language - 'ar', 'en', or None for auto-detect (default: None)
     """
     await websocket.accept()
+
+    # Handle special 'auto' value for auto-detection
+    forced_language = None if language in (None, "auto", "") else language
 
     # Route to appropriate handler based on mode
     streaming_service = get_streaming_graph_service()
 
+    lang_display = forced_language if forced_language else "auto-detect"
     if mode == "streaming" and streaming_service is not None:
-        logger.info(f"WebSocket connection accepted: mode=streaming, translate={translate}")
-        await _handle_streaming_mode(websocket, translate, target_language)
+        logger.info(f"WebSocket connection accepted: mode=streaming, language={lang_display}, translate={translate}")
+        await _handle_streaming_mode(websocket, translate, target_language, forced_language)
     else:
-        logger.info(f"WebSocket connection accepted: mode=direct, translate={translate}, target_language={target_language}")
-        await _handle_direct_mode(websocket, translate, target_language)
+        logger.info(f"WebSocket connection accepted: mode=direct, language={lang_display}, translate={translate}, target_language={target_language}")
+        await _handle_direct_mode(websocket, translate, target_language, forced_language)
 
 
 async def _handle_direct_mode(
     websocket: WebSocket,
     translate: bool,
-    target_language: str
+    target_language: str,
+    language: str = "ar"
 ):
     """Handle WebSocket with direct classification (original mode).
 
     This is the existing implementation preserved for backward compatibility.
+
+    Args:
+        websocket: WebSocket connection
+        translate: Enable translation
+        target_language: Target language for translation
+        language: Force detected language ('ar' or 'en')
     """
     service = get_websocket_audio_service()
     incident_classifier, severity_classifier, dispatch_classifier = get_classifiers()
@@ -219,8 +232,9 @@ async def _handle_direct_mode(
     # Initialize session state with default or query params
     session_state = None
     session_configured = False
+    forced_language = language  # Store the forced language
 
-    logger.info(f"WebSocket connection accepted: translate={translate}, target_language={target_language}")
+    logger.info(f"WebSocket connection accepted: translate={translate}, target_language={target_language}, language={language}")
 
     try:
         async for message in websocket.iter_bytes():
@@ -342,17 +356,27 @@ async def _handle_direct_mode(
 async def _handle_streaming_mode(
     websocket: WebSocket,
     translate: bool,
-    target_language: str
+    target_language: str,
+    language: str = "ar"
 ):
     """Handle WebSocket with streaming LangGraph workflow.
 
     This mode uses the streaming graph for time-bounded confidence evaluation.
     ALL cases are sent to human review queue - NO auto-dispatch.
     Supports translation toggle and returns both original and translated text.
+
+    Args:
+        websocket: WebSocket connection
+        translate: Enable translation
+        target_language: Target language for translation
+        language: Force detected language ('ar' or 'en')
     """
     audio_service = get_websocket_audio_service()
     streaming_service = get_streaming_graph_service()
     case_controller = get_streaming_case_controller()
+
+    # Store the forced language
+    forced_language = language
 
     if streaming_service is None:
         logger.error("Streaming service not initialized")
@@ -377,13 +401,16 @@ async def _handle_streaming_mode(
     # Track cumulative translated text for streaming mode
     cumulative_translated_text = ""
 
-    logger.info(f"[WS:STREAMING] Session {session_id} started, translate={translate}")
+    lang_display = forced_language if forced_language else "auto-detect"
+    logger.info(f"[WS:STREAMING] Session {session_id} started, language={lang_display}, translate={translate}")
 
     # Send session started message
     await websocket.send_json({
         "type": "session_started",
         "session_id": session_id,
         "mode": "streaming",
+        "language": forced_language,
+        "language_mode": "forced" if forced_language else "auto-detect",
         "translate": translate,
         "target_language": target_language,
         "evaluation_window_seconds": session_state.get("evaluation_window_seconds", 10.0),
@@ -420,20 +447,24 @@ async def _handle_streaming_mode(
 
                     # Check if buffer is large enough to process
                     if len(audio_session["audio_buffer"]) >= audio_service.min_chunk_size_bytes:
-                        # Transcribe audio buffer
-                        stt_result = audio_service.transcribe_buffer(audio_session)
+                        # Transcribe audio buffer with forced language
+                        stt_result = audio_service.transcribe_buffer(
+                            audio_session,
+                            forced_language=forced_language
+                        )
 
                         if stt_result and stt_result.get("text"):
                             # Get original transcript text
                             original_text = stt_result["text"]
                             full_original = stt_result.get("full_transcript", original_text)
+                            # Use forced language if set, otherwise use STT auto-detected language
                             detected_language = stt_result.get("detected_language", "ar")
 
                             # Handle translation if enabled
                             translated_text = None
                             full_translated = None
                             text_for_classification = original_text
-                            classification_language = "ar"  # Default to Arabic rules
+                            classification_language = detected_language  # Use detected (or forced) language for classification
 
                             if translate:
                                 # Translate the new chunk
@@ -449,7 +480,7 @@ async def _handle_streaming_mode(
                                         cumulative_translated_text = translated_text
                                     full_translated = cumulative_translated_text
                                     text_for_classification = translated_text
-                                    classification_language = target_language
+                                    classification_language = target_language  # Use target language for classification when translating
 
                             # Update session metrics with STT timing
                             metrics = dict(session_state.get("processing_metrics", {}))

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microphone Test Client</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+        }
+        h1 {
+            color: #1e3a8a;
+            font-size: 1.5em;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .subtitle {
+            color: #6b7280;
+            font-size: 0.9em;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        select, input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #1e40af;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        .checkbox-group label {
+            margin: 0;
+            font-weight: 500;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(30,58,138,0.3); }
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+            display: none;
+        }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            display: none;
+        }
+        .status.connected { background: #d1fae5; color: #065f46; display: block; }
+        .status.error { background: #fee2e2; color: #991b1b; display: block; }
+        .status.info { background: #dbeafe; color: #1e40af; display: block; }
+        .output {
+            margin-top: 20px;
+            padding: 16px;
+            background: #1f2937;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.75em;
+            color: #10b981;
+            display: none;
+        }
+        .output.visible { display: block; }
+        .output .error { color: #f87171; }
+        .output .info { color: #60a5fa; }
+        .output .partial { color: #fbbf24; }
+
+        /* Results Panel */
+        .results { margin-top: 20px; display: none; }
+        .results.visible { display: block; }
+        .result-section {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .result-section h3 {
+            font-size: 0.8em;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .transcript-box {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 0.9em;
+            color: #1f2937;
+            margin-bottom: 8px;
+            min-height: 40px;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        .transcript-box.rtl { direction: rtl; text-align: right; }
+        .lang-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+        .lang-ar { background: #dbeafe; color: #1e40af; }
+        .lang-en { background: #d1fae5; color: #065f46; }
+        .classification-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .class-item {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+        .class-item .label {
+            font-size: 0.7em;
+            color: #9ca3af;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .class-item .value {
+            font-size: 1em;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .class-item .confidence {
+            font-size: 0.75em;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+        .class-item.incident { border-top: 3px solid #dc2626; }
+        .class-item.severity { border-top: 3px solid #f59e0b; }
+        .class-item.dispatch { border-top: 3px solid #1e40af; }
+        .cmd {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.75em;
+            color: #4b5563;
+            word-break: break-all;
+        }
+        .cmd-label {
+            font-size: 0.7em;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Microphone Test Client</h1>
+        <p class="subtitle">Stream audio to WebSocket endpoint</p>
+
+        <div class="form-group">
+            <div class="row">
+                <div>
+                    <label>Host</label>
+                    <input type="text" id="host" value="localhost">
+                </div>
+                <div>
+                    <label>Port</label>
+                    <input type="number" id="port" value="8000">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="row">
+                <div>
+                    <label>Mode</label>
+                    <select id="mode">
+                        <option value="streaming" selected>Streaming</option>
+                        <option value="direct">Direct</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Language</label>
+                    <select id="language">
+                        <option value="ar" selected>Arabic (ar)</option>
+                        <option value="en">English (en)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="translate">
+                <label for="translate">Enable Translation</label>
+            </div>
+        </div>
+
+        <div class="form-group" id="targetLangGroup" style="display:none;">
+            <label>Target Language</label>
+            <select id="targetLanguage">
+                <option value="ar" selected>Arabic (ar)</option>
+                <option value="en">English (en)</option>
+            </select>
+        </div>
+
+        <button class="btn btn-primary" id="startBtn">Start Streaming</button>
+        <button class="btn btn-danger" id="stopBtn">Stop</button>
+
+        <div class="status" id="status"></div>
+
+        <!-- Results Panel -->
+        <div class="results" id="results">
+            <div class="result-section">
+                <h3>Transcription</h3>
+                <div class="transcript-box" id="originalText">-</div>
+                <div style="font-size:0.75em; color:#6b7280;">
+                    Original <span class="lang-badge" id="originalLang">-</span>
+                </div>
+                <div class="transcript-box" id="translatedText" style="display:none;"></div>
+                <div id="translatedLabel" style="display:none; font-size:0.75em; color:#6b7280;">
+                    Translated <span class="lang-badge" id="translatedLang">-</span>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3>Classification</h3>
+                <div class="classification-grid">
+                    <div class="class-item incident">
+                        <div class="label">Incident</div>
+                        <div class="value" id="incidentType">-</div>
+                        <div class="confidence" id="incidentConf">-</div>
+                    </div>
+                    <div class="class-item severity">
+                        <div class="label">Severity</div>
+                        <div class="value" id="severityLevel">-</div>
+                        <div class="confidence" id="severityConf">-</div>
+                    </div>
+                    <div class="class-item dispatch">
+                        <div class="label">Dispatch</div>
+                        <div class="value" id="dispatchUnit">-</div>
+                        <div class="confidence" id="dispatchConf">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="output" id="output"></div>
+
+        <div class="cmd">
+            <div class="cmd-label">CLI Command:</div>
+            <code id="cmdPreview">python tests/test_microphone_client.py --mode streaming --language ar</code>
+        </div>
+    </div>
+
+    <script>
+        const elements = {
+            host: document.getElementById('host'),
+            port: document.getElementById('port'),
+            mode: document.getElementById('mode'),
+            language: document.getElementById('language'),
+            translate: document.getElementById('translate'),
+            targetLanguage: document.getElementById('targetLanguage'),
+            targetLangGroup: document.getElementById('targetLangGroup'),
+            startBtn: document.getElementById('startBtn'),
+            stopBtn: document.getElementById('stopBtn'),
+            status: document.getElementById('status'),
+            output: document.getElementById('output'),
+            cmdPreview: document.getElementById('cmdPreview')
+        };
+
+        let mediaStream = null;
+        let audioContext = null;
+        let websocket = null;
+        let processor = null;
+
+        // Toggle target language visibility
+        elements.translate.addEventListener('change', () => {
+            elements.targetLangGroup.style.display = elements.translate.checked ? 'block' : 'none';
+            updateCmdPreview();
+        });
+
+        // Update command preview on any change
+        ['host', 'port', 'mode', 'language', 'translate', 'targetLanguage'].forEach(id => {
+            elements[id].addEventListener('change', updateCmdPreview);
+            elements[id].addEventListener('input', updateCmdPreview);
+        });
+
+        function updateCmdPreview() {
+            let cmd = `python tests/test_microphone_client.py --mode ${elements.mode.value} --language ${elements.language.value}`;
+            if (elements.host.value !== 'localhost') cmd += ` --host ${elements.host.value}`;
+            if (elements.port.value !== '8000') cmd += ` --port ${elements.port.value}`;
+            if (elements.translate.checked) {
+                cmd += ' --translate';
+                if (elements.targetLanguage.value !== 'ar') {
+                    cmd += ` --target-language ${elements.targetLanguage.value}`;
+                }
+            }
+            elements.cmdPreview.textContent = cmd;
+        }
+
+        function setStatus(msg, type) {
+            elements.status.textContent = msg;
+            elements.status.className = 'status ' + type;
+        }
+
+        function log(msg, type = '') {
+            elements.output.classList.add('visible');
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            elements.output.appendChild(line);
+            elements.output.scrollTop = elements.output.scrollHeight;
+        }
+
+        function buildWsUrl() {
+            const host = elements.host.value;
+            const port = elements.port.value;
+            const mode = elements.mode.value;
+            const lang = elements.language.value;
+            const translate = elements.translate.checked;
+            const targetLang = elements.targetLanguage.value;
+            return `ws://${host}:${port}/ws/live-audio-stream?mode=${mode}&translate=${translate}&target_language=${targetLang}&language=${lang}`;
+        }
+
+        async function startStreaming() {
+            try {
+                setStatus('Requesting microphone access...', 'info');
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                const wsUrl = buildWsUrl();
+                log(`Connecting to ${wsUrl}`, 'info');
+                websocket = new WebSocket(wsUrl);
+
+                websocket.onopen = () => {
+                    setStatus('Connected - Speak now!', 'connected');
+                    log('WebSocket connected', 'info');
+                    startAudioProcessing();
+                };
+
+                websocket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleMessage(data);
+                    } catch (e) {
+                        log(`Raw: ${event.data}`);
+                    }
+                };
+
+                websocket.onerror = (e) => {
+                    setStatus('Connection error', 'error');
+                    log('WebSocket error', 'error');
+                };
+
+                websocket.onclose = () => {
+                    setStatus('Disconnected', 'info');
+                    log('WebSocket closed', 'info');
+                    stopStreaming();
+                };
+
+                elements.startBtn.style.display = 'none';
+                elements.stopBtn.style.display = 'block';
+
+            } catch (err) {
+                setStatus('Microphone access denied', 'error');
+                log(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        function handleMessage(data) {
+            const type = data.type || 'unknown';
+
+            if (type === 'session_started') {
+                log(`Session started: translate=${data.translate}, lang=${data.target_language}`, 'info');
+                resetResults();
+            } else if (type === 'partial') {
+                updateResults(data);
+                log(`Partial #${data.segment_index || '?'}`, 'partial');
+            } else if (type === 'final') {
+                updateResults(data);
+                log('=== FINAL RESULT ===', 'info');
+                stopStreaming();
+            } else if (type === 'error') {
+                log(`Error: ${data.error}`, 'error');
+            } else {
+                log(`${type}: ${JSON.stringify(data).slice(0, 100)}`);
+            }
+        }
+
+        function resetResults() {
+            document.getElementById('results').classList.remove('visible');
+            document.getElementById('originalText').textContent = '-';
+            document.getElementById('translatedText').textContent = '';
+            document.getElementById('translatedText').style.display = 'none';
+            document.getElementById('translatedLabel').style.display = 'none';
+            document.getElementById('incidentType').textContent = '-';
+            document.getElementById('incidentConf').textContent = '-';
+            document.getElementById('severityLevel').textContent = '-';
+            document.getElementById('severityConf').textContent = '-';
+            document.getElementById('dispatchUnit').textContent = '-';
+            document.getElementById('dispatchConf').textContent = '-';
+        }
+
+        function updateResults(data) {
+            document.getElementById('results').classList.add('visible');
+
+            // Handle transcription - check both new and legacy formats
+            const transcription = data.transcription || {};
+            const originalText = transcription.original_text || data.partial_transcript || data.original_transcript || '-';
+            const originalLang = transcription.original_language || data.detected_language || '?';
+            const translatedText = transcription.translated_text || data.partial_translated_text || data.translated_text;
+            const translatedLang = transcription.translated_language || data.translated_language;
+
+            // Update original transcript
+            const origBox = document.getElementById('originalText');
+            origBox.textContent = originalText;
+            origBox.className = 'transcript-box' + (originalLang === 'ar' ? ' rtl' : '');
+
+            const origLangBadge = document.getElementById('originalLang');
+            origLangBadge.textContent = originalLang.toUpperCase();
+            origLangBadge.className = 'lang-badge lang-' + originalLang;
+
+            // Update translated transcript (if available)
+            if (translatedText) {
+                const transBox = document.getElementById('translatedText');
+                transBox.textContent = translatedText;
+                transBox.style.display = 'block';
+                transBox.className = 'transcript-box' + (translatedLang === 'ar' ? ' rtl' : '');
+
+                document.getElementById('translatedLabel').style.display = 'block';
+                const transLangBadge = document.getElementById('translatedLang');
+                transLangBadge.textContent = (translatedLang || '?').toUpperCase();
+                transLangBadge.className = 'lang-badge lang-' + (translatedLang || 'en');
+            }
+
+            // Handle classification
+            const cls = data.classification || {};
+            const incident = cls.incident || {};
+            const severity = cls.severity || {};
+            const dispatch = cls.dispatch || {};
+
+            document.getElementById('incidentType').textContent = incident.incident_type || incident.type || '-';
+            document.getElementById('incidentConf').textContent = formatConfidence(incident.confidence);
+
+            document.getElementById('severityLevel').textContent = severity.severity_level || severity.level || '-';
+            document.getElementById('severityConf').textContent = formatConfidence(severity.confidence);
+
+            document.getElementById('dispatchUnit').textContent = dispatch.dispatch_unit || dispatch.unit || '-';
+            document.getElementById('dispatchConf').textContent = formatConfidence(dispatch.confidence);
+        }
+
+        function formatConfidence(conf) {
+            if (conf === undefined || conf === null) return '-';
+            return Math.round(conf * 100) + '%';
+        }
+
+        function startAudioProcessing() {
+            audioContext = new AudioContext({ sampleRate: 16000 });
+            const source = audioContext.createMediaStreamSource(mediaStream);
+            processor = audioContext.createScriptProcessor(1600, 1, 1); // ~100ms chunks at 16kHz
+
+            processor.onaudioprocess = (e) => {
+                if (websocket?.readyState === WebSocket.OPEN) {
+                    const input = e.inputBuffer.getChannelData(0);
+                    const pcm16 = new Int16Array(input.length);
+                    for (let i = 0; i < input.length; i++) {
+                        pcm16[i] = Math.max(-32768, Math.min(32767, input[i] * 32768));
+                    }
+                    websocket.send(pcm16.buffer);
+                }
+            };
+
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+        }
+
+        function stopStreaming() {
+            if (processor) { processor.disconnect(); processor = null; }
+            if (audioContext) { audioContext.close(); audioContext = null; }
+            if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+            if (websocket) { websocket.close(); websocket = null; }
+
+            elements.startBtn.style.display = 'block';
+            elements.stopBtn.style.display = 'none';
+        }
+
+        elements.startBtn.addEventListener('click', startStreaming);
+        elements.stopBtn.addEventListener('click', stopStreaming);
+
+        updateCmdPreview();
+    </script>
+</body>
+</html>
