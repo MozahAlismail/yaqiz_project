@@ -2,16 +2,14 @@
 Streaming LangGraph Workflow Definition for Emergency Dispatch
 
 Builds and compiles the StateGraph for streaming emergency dispatch.
+
 Features:
 - Time-bounded confidence evaluation (10-second window)
 - Priority-based human review queue (ALL cases require review)
 - Processing time metrics tracking
 - Language selection via WebSocket parameter (ar/en)
 
-NOTE: Language detection node removed. Language is now forced at the
-WebSocket/STT level via --language parameter (ar or en).
-# - Unsupported language handling
-IMPORTANT: This is a SEPARATE workflow from graph/workflow.py
+IMPORTANT: This is a SEPARATE workflow from graph/workflow.py.
 It does NOT modify the existing batch workflow.
 """
 
@@ -28,16 +26,13 @@ from graph.streaming_state import (
     update_streaming_state_with_transcript
 )
 from graph.streaming_nodes import (
-    # streaming_language_detection_node,
     streaming_incident_classification_node,
     streaming_severity_classification_node,
     streaming_dispatch_classification_node,
-    # streaming_unsupported_language_handler_node,
     confidence_gate_node,
     streaming_complete_node
 )
 from graph.streaming_edges import (
-    # route_after_streaming_language_detection,
     route_after_confidence_gate,
     should_exit_streaming
 )
@@ -66,9 +61,6 @@ def build_streaming_graph(
     Creates a graph with all nodes and edges for processing live
     microphone audio through the streaming pipeline.
 
-    NOTE: Language is now selected via WebSocket parameter (--language ar/en).
-    No in-graph language detection is performed.
-
     Graph Structure:
         START --> incident_classification
                         |
@@ -95,33 +87,16 @@ def build_streaming_graph(
     # Create the graph with StreamingEmergencyState schema
     graph = StateGraph(StreamingEmergencyState)
 
-    # Add classification nodes (language detection removed - handled at STT level)
-    # graph.add_node("language_detection", streaming_language_detection_node)
+    # Add classification nodes
     graph.add_node("incident_classification", streaming_incident_classification_node)
     graph.add_node("severity_classification", streaming_severity_classification_node)
     graph.add_node("dispatch_classification", streaming_dispatch_classification_node)
     graph.add_node("confidence_gate", confidence_gate_node)
-    # graph.add_node("unsupported_language_handler", streaming_unsupported_language_handler_node)    
     graph.add_node("streaming_complete", streaming_complete_node)
 
-    # Set entry point - directly to incident classification
-    # Language is now forced via WebSocket parameter (ar/en)
+    # Set entry point
     graph.set_entry_point("incident_classification")
-    # graph.set_entry_point("language_detection")
 
-    # # Add conditional edge after language detection
-    # graph.add_conditional_edges(
-    #     "language_detection",
-    #     route_after_streaming_language_detection,
-    #     {
-    #         "incident_classification": "incident_classification",
-    #         "unsupported_language_handler": "unsupported_language_handler",
-    #     }
-    # )
-
-    # # Unsupported language handler goes to streaming_complete
-    # graph.add_edge("unsupported_language_handler", "streaming_complete")
-    
     # Sequential edges for classification flow
     graph.add_edge("incident_classification", "severity_classification")
     graph.add_edge("severity_classification", "dispatch_classification")

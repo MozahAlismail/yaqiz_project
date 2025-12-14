@@ -1,26 +1,21 @@
 # AI Emergency Dispatch Assistant
 
-A production-ready multilingual multi-agent AI system for emergency call analysis.
+A production-ready multilingual multi-agent AI system for emergency 911 call analysis with real-time streaming support.
 
 ## Features
 
-- Multilingual Support (Arabic + English)
-- 6 Specialized AI Agents
-- Speech-to-Text using Whisper
-- Incident Classification
-- Severity Assessment
-- Dispatch Recommendation
-- Self-Evaluation
-- Human-in-the-Loop
-- Feedback System with Mini-RLHF
-- RESTful API
-- PostgreSQL Database
+| Feature | Description |
+|---------|-------------|
+| Multilingual Support | Arabic + English with auto-detection |
+| Speech-to-Text | OpenAI Whisper API integration |
+| Incident Classification | AI-powered emergency type detection |
+| Severity Assessment | Urgency level evaluation |
+| Dispatch Recommendation | Smart unit allocation |
+| Real-time Streaming | WebSocket audio processing |
+| Human-in-the-Loop | Operator review and correction |
+| Mini-RLHF | Continuous model improvement |
 
-## Prerequisites
-
-- Python 3.10+
-- PostgreSQL 12+ (database)
-- OpenAI API key (for transcription and LLM)
+---
 
 ## Quick Start
 
@@ -30,135 +25,138 @@ A production-ready multilingual multi-agent AI system for emergency call analysi
 # Set your OpenAI API key
 export OPENAI_API_KEY=your-key
 
-# Start all services (PostgreSQL + API)
+# Start all services
 docker-compose up -d
 ```
 
-The application will be available at http://localhost:8000
+Access the API at http://localhost:8000
 
 ### Option 2: Local Installation
 
-1. **Install PostgreSQL** (if not already installed)
-   - Ubuntu/Debian: `sudo apt install postgresql postgresql-contrib`
-   - macOS: `brew install postgresql@15`
-   - Windows: Download from https://www.postgresql.org/download/
-
-2. **Install Python dependencies** (simple - no FFmpeg or ML models needed!):
 ```bash
-# Install latest versions (recommended)
+# 1. Install Python dependencies
 pip install -r requirements.txt
 
-# OR install pinned versions (for reproducibility)
-pip install -r requirements-pinned.txt
-```
-
-3. **Configure environment variables:**
-```bash
+# 2. Setup environment
 cp .env.example .env
-# Edit .env with your database credentials and API key
-```
+# Edit .env with your credentials
 
-4. **Initialize PostgreSQL database:**
-```bash
+# 3. Initialize database
 python data/init_db.py
-```
 
-This will create:
-- `emergency_dispatch` database
-- `cases` table (stores AI analysis results)
-- `feedback` table (stores operator corrections for RLHF)
-- Necessary indexes for performance
-
-5. **Test database connection:**
-```bash
-python test_db_connection.py
-```
-
-6. **Run server:**
-```bash
+# 4. Run the server
 python main.py
 ```
 
+### Frontend Development
+
+```bash
+cd view
+npm install
+npm run dev
+```
+
+Access the UI at http://localhost:5173
+
+---
+
 ## API Endpoints
 
-### Audio Analysis
-- **POST** `/api/analyze-audio` - Analyze emergency audio file
+### Core Endpoints
 
-### Cases (Full CRUD)
-- **GET** `/api/case/{case_id}` - Retrieve a specific case by ID
-- **GET** `/api/cases?limit=100&offset=0` - Retrieve all cases (paginated)
-- **PUT** `/api/case/{case_id}` - Update a case's information
-- **DELETE** `/api/case/{case_id}` - Delete a case (⚠️ also deletes feedback)
-- **GET** `/api/get-case/{case_id}` - [DEPRECATED] Use `/api/case/{case_id}` instead
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/analyze-audio` | Analyze audio file |
+| GET | `/api/case/{id}` | Get case by ID |
+| GET | `/api/cases` | List all cases |
+| POST | `/api/operator-feedback` | Submit correction |
+| GET | `/api/analytics` | Dashboard analytics |
+| GET | `/api/health` | Health check |
 
-### Feedback (Full CRUD + Upsert)
-- **POST** `/api/operator-feedback` - Submit/Update operator corrections (UPSERT)
-- **GET** `/api/feedback/{feedback_id}` - Retrieve a specific feedback by ID
-- **GET** `/api/feedbacks?limit=100&offset=0` - Retrieve all feedbacks (paginated)
-- **PUT** `/api/feedback/{feedback_id}` - Update feedback information
-- **DELETE** `/api/feedback/{feedback_id}` - Delete feedback only
+### WebSocket
 
-**Note:** Each case can have only ONE feedback (one-to-one relationship)
+| Endpoint | Description |
+|----------|-------------|
+| `ws://localhost:8000/ws/audio` | Real-time audio streaming |
 
-### Analytics
-- **GET** `/api/analytics` - Retrieve comprehensive dashboard analytics
-  - Feedback analysis (edited vs correct cases, edit/acceptance rates)
-  - Average confidence scores (incident, severity, dispatch)
-  - Incident types distribution with counts and percentages
-  - Language distribution (en, ar, etc.)
-  - Severity levels distribution (CRITICAL, HIGH, MEDIUM, LOW)
-  - Dispatch units distribution (AMBULANCE, POLICE, FIRE_DEPARTMENT, etc.)
+### Interactive Docs
 
-### Model Training
-- **POST** `/api/retrain-model` - Trigger RLHF training
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-### System
-- **GET** `/api/health` - Health check
+---
 
 ## Architecture
 
 ```
-Audio → STT → Language Detection → Incident → Severity → Dispatch → Evaluation → PostgreSQL
+Audio Input --> STT --> Language Detection --> Incident --> Severity --> Dispatch --> Evaluation --> Database
+                                                     |
+                                                     v
+                                              Human Review
 ```
 
-**Database Schema:**
-- `cases` table: Stores transcripts, AI predictions, confidence scores
-- `feedback` table: Stores operator corrections (linked via foreign key)
-- Indexes: Optimized for recent cases, review queue, and feedback queries
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
 
-## Database
+---
 
-This project uses **PostgreSQL 15** for persistent storage.
+## Documentation
 
-**Key Features:**
-- ACID compliance for data integrity
-- Foreign key constraints between cases and feedback
-- Optimized indexes for common queries
-- Connection pooling for performance
-- Automatic timestamps
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture & design |
+| [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Database tables & queries |
+| [FRONTEND_GUIDE.md](docs/FRONTEND_GUIDE.md) | Frontend development guide |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
+| [INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md) | Detailed setup instructions |
+| [API_EXAMPLES.md](docs/API_EXAMPLES.md) | API usage examples |
+| [WEBSOCKET_STREAMING.md](docs/WEBSOCKET_STREAMING.md) | WebSocket implementation |
 
-**Database Configuration:**
-- Connection settings in `config/config.yaml`
-- Environment variables in `.env`
-- Initialization script: `data/init_db.py`
-- Test script: `test_db_connection.py`
+---
 
-**Common Operations:**
+## Project Structure
+
+```
+.dev/
+├── agents/         # AI agent implementations
+├── api/            # FastAPI routers
+├── config/         # Configuration files
+├── controllers/    # Business logic
+├── data/           # Database scripts
+├── docs/           # Documentation
+├── graph/          # LangGraph workflows
+├── models/         # ML model wrappers
+├── services/       # Specialized services
+├── tests/          # Test suites
+├── view/           # React frontend
+├── main.py         # Application entry
+└── docker-compose.yml
+```
+
+---
+
+## Configuration
+
+### Environment Variables (`.env`)
+
 ```bash
-# Initialize database
-python data/init_db.py
-
-# Test connection
-python test_db_connection.py
-
-# Backup database
-pg_dump -U postgres emergency_dispatch > backup.sql
-
-# Restore database
-psql -U postgres emergency_dispatch < backup.sql
+OPENAI_API_KEY=your-key
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=emergency_dispatch
+DB_USER=postgres
+DB_PASSWORD=postgres
 ```
 
-For detailed database documentation, see `INSTALLATION_GUIDE.md`.
+### Application Config (`config/config.yaml`)
+
+See the file for full configuration options including:
+- App settings (host, port)
+- Database connection
+- Model parameters
+- Streaming settings
+- Logging configuration
+
+---
 
 ## Testing
 
@@ -170,41 +168,69 @@ pytest
 pytest --cov=.
 
 # Test database connection
-python test_db_connection.py
+python tests/test_db_connection.py
 
 # Test API endpoints
-./test_api.sh
+./scripts/test_api.sh
 ```
 
-## Documentation
+---
 
-- **API Documentation**: http://localhost:8000/docs (Swagger UI)
-- **Installation Guide**: `INSTALLATION_GUIDE.md` (detailed setup instructions)
-- **Quick Start**: `QUICK_START.md` (1-minute setup)
-- **Project Structure**: `PROJECT_STRUCTURE.md` (architecture overview)
+## Tech Stack
 
-## Configuration Files
+### Backend
+- **FastAPI** - Web framework
+- **LangGraph** - Agent orchestration
+- **LangChain** - LLM integration
+- **OpenAI Whisper** - Speech-to-text
+- **PostgreSQL** - Database
 
-- `.env` - Environment variables (database, API keys)
-- `config/config.yaml` - Application configuration
-- `docker-compose.yml` - Docker services setup
-- `requirements.txt` - Python dependencies
+### Frontend
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **Tailwind CSS** - Styling
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+- Development setup
+- Coding standards
+- Git workflow
+- Testing requirements
+- Code review process
+
+---
 
 ## Troubleshooting
 
-### Database Connection Issues
-1. Ensure PostgreSQL is running: `sudo systemctl status postgresql`
-2. Check credentials in `.env` match your PostgreSQL setup
-3. Run `python test_db_connection.py` for diagnostics
+### Database Issues
+```bash
+# Test connection
+python tests/test_db_connection.py
+
+# Reinitialize database
+python data/init_db.py
+```
 
 ### Import Errors
 ```bash
 pip install -r requirements.txt --upgrade
 ```
 
-See `INSTALLATION_GUIDE.md` for detailed troubleshooting.
+### Frontend Issues
+```bash
+cd view
+rm -rf node_modules
+npm install
+```
+
+See [docs/DATABASE_TROUBLESHOOTING.md](docs/DATABASE_TROUBLESHOOTING.md) for more help.
+
+---
 
 ## License
 
 MIT
-

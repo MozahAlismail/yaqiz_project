@@ -77,9 +77,9 @@ dist/
 .env.local
 *.tsbuildinfo
 
+# Claude Code
 .claude/
 .claude/settings.local.json
-nul
 
+# Windows
 nul
-node_modules/

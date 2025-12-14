@@ -1,156 +1,255 @@
-# AI Emergency Dispatch Assistant - Project Structure
+# Project Structure
 
-## Complete File List
+## Overview
 
-### Root Files
-- main.py                  # Main FastAPI application
-- requirements.txt         # Python dependencies
-- requirements-pinned.txt  # Pinned dependencies
-- README.md               # Project documentation
-- .gitignore              # Git ignore patterns
-- .env.example            # Environment variables template
-- .dockerignore           # Docker ignore patterns
-- Dockerfile              # Docker container definition
-- docker-compose.yml      # Docker compose configuration
+This document provides a complete overview of the AI Emergency Dispatch Assistant project structure.
 
-### docs/
-- docs/ANALYTICS.md                    # Analytics documentation
-- docs/API_EXAMPLES.md                 # API usage examples
-- docs/CRUD_OPERATIONS.md              # Database operations guide
-- docs/DATABASE_TROUBLESHOOTING.md     # Database troubleshooting
-- docs/INSTALLATION_GUIDE.md           # Installation instructions
-- docs/PROJECT_STRUCTURE.md            # This file
-- docs/QUICK_START.md                  # Quick start guide
-- docs/WORKFLOW_DIAGRAM.md             # System workflow diagrams
+## Directory Tree
 
-### scripts/
-- scripts/run.sh           # Startup script
-- scripts/test_api.sh      # API testing script
+```
+.dev/
+├── agents/                         # AI Agent Implementations
+│   ├── __init__.py
+│   ├── language_detection_agent.py # Language detection (ar/en)
+│   ├── incident_agent.py           # Incident type classification
+│   ├── severity_agent.py           # Severity level assessment
+│   ├── dispatch_agent.py           # Dispatch unit recommendation
+│   └── self_eval_agent.py          # Quality self-evaluation
+│
+├── api/                            # FastAPI Routers
+│   ├── __init__.py
+│   ├── audio_router.py             # POST /api/analyze-audio
+│   ├── case_router.py              # CRUD /api/case/*
+│   ├── feedback_router.py          # POST /api/operator-feedback
+│   ├── analytics_router.py         # GET /api/analytics
+│   ├── retrain_router.py           # POST /api/retrain-model
+│   ├── health_router.py            # GET /api/health
+│   ├── realtime_audio_router.py    # Real-time audio processing
+│   ├── websocket_audio_router.py   # WS /ws/audio
+│   └── streaming_review_router.py  # Streaming review queue
+│
+├── config/                         # Configuration
+│   ├── config.yaml                 # Main application config
+│   ├── prompts/                    # LLM Prompt Templates
+│   │   ├── incident_prompt.txt
+│   │   ├── severity_prompt.txt
+│   │   ├── dispatch_prompt.txt
+│   │   ├── evaluation_prompt.txt
+│   │   └── translation_prompt.txt
+│   └── emergency_rules/            # Classification Rules
+│       ├── en/                     # English rules
+│       │   ├── incident_rules.json
+│       │   ├── severity_rules.json
+│       │   ├── dispatch_rules.json
+│       │   └── evaluation_rules.json
+│       └── ar/                     # Arabic rules
+│           ├── incident_rules.json
+│           ├── severity_rules.json
+│           ├── dispatch_rules.json
+│           └── evaluation_rules.json
+│
+├── controllers/                    # Business Logic Layer
+│   ├── __init__.py
+│   ├── agent_controller.py         # Agent orchestration
+│   ├── main_controller.py          # Main business logic
+│   ├── realtime_audio_controller.py
+│   └── streaming_case_controller.py
+│
+├── data/                           # Database Management
+│   ├── init_db.py                  # Database initialization
+│   ├── migrate_add_unique_constraint.py
+│   └── migrate_streaming_columns.py
+│
+├── docs/                           # Documentation
+│   ├── README.md
+│   ├── QUICK_START.md
+│   ├── INSTALLATION_GUIDE.md
+│   ├── PROJECT_STRUCTURE.md        # This file
+│   ├── ARCHITECTURE.md             # System architecture
+│   ├── DATABASE_SCHEMA.md          # Database documentation
+│   ├── FRONTEND_GUIDE.md           # Frontend development guide
+│   ├── API_EXAMPLES.md
+│   ├── ANALYTICS.md
+│   ├── CRUD_OPERATIONS.md
+│   ├── DATABASE_TROUBLESHOOTING.md
+│   ├── REALTIME_AUDIO_WORKFLOW.md
+│   ├── WEBSOCKET_STREAMING.md
+│   ├── WEBSOCKET_IMPLEMENTATION_SUMMARY.md
+│   └── WORKFLOW_DIAGRAM.md
+│
+├── graph/                          # LangGraph Workflows
+│   ├── state.py                    # Batch workflow state schema
+│   ├── streaming_state.py          # Streaming workflow state
+│   ├── nodes.py                    # Graph nodes (processing steps)
+│   ├── streaming_nodes.py          # Streaming-specific nodes
+│   ├── edges.py                    # Routing logic
+│   ├── streaming_edges.py          # Streaming routing
+│   ├── workflow.py                 # Main batch workflow
+│   ├── streaming_workflow.py       # Real-time streaming workflow
+│   └── audio_analysis_workflow.py  # Audio file analysis workflow
+│
+├── models/                         # ML Model Wrappers
+│   ├── __init__.py
+│   ├── stt_model.py                # Speech-to-Text (OpenAI Whisper)
+│   ├── language_model.py           # Language detection
+│   ├── incident_classifier.py      # Incident classification
+│   ├── severity_classifier.py      # Severity assessment
+│   ├── dispatch_classifier.py      # Dispatch recommendation
+│   ├── translation_model.py        # Arabic/English translation
+│   └── rlhf_trainer.py             # Mini-RLHF training
+│
+├── scripts/                        # Utility Scripts
+│   ├── run.sh                      # Startup script
+│   └── test_api.sh                 # API testing script
+│
+├── services/                       # Specialized Services
+│   ├── realtime_audio_service.py
+│   ├── websocket_audio_service.py
+│   └── streaming_graph_service.py
+│
+├── static/                         # Static Assets
+│   └── dashboard.html              # Analytics dashboard
+│
+├── tests/                          # Test Suites
+│   ├── conftest.py                 # Pytest fixtures
+│   ├── test_db_connection.py       # Database tests
+│   ├── test_microphone_client.py
+│   ├── test_websocket_client.py
+│   ├── unit/                       # Unit tests
+│   │   ├── __init__.py
+│   │   ├── test_language_model.py
+│   │   ├── test_agents.py
+│   │   └── test_database.py
+│   └── integration/                # Integration tests
+│       ├── __init__.py
+│       ├── test_api.py
+│       └── test_pipeline.py
+│
+├── view/                           # React Frontend
+│   ├── src/
+│   │   ├── App.tsx                 # Main application
+│   │   ├── main.tsx                # Entry point
+│   │   ├── components/             # Core components
+│   │   │   ├── ErrorBoundary.tsx
+│   │   │   └── Layout.tsx
+│   │   ├── context/                # React contexts
+│   │   │   ├── LanguageContext.tsx
+│   │   │   └── ThemeContext.tsx
+│   │   ├── hooks/                  # Custom hooks
+│   │   └── services/               # API services
+│   │
+│   ├── realtime_incident/          # Real-time call view
+│   │   ├── RealtimeIncidentView.tsx
+│   │   └── components/
+│   │
+│   ├── accepted_incident/          # Reviewed incident view
+│   │   ├── AcceptedIncidentView.tsx
+│   │   └── components/
+│   │
+│   ├── incidents_list/             # Incident list view
+│   │   ├── IncidentsListView.tsx
+│   │   └── components/
+│   │
+│   ├── shared/                     # Shared components
+│   │   ├── components/             # Reusable UI components
+│   │   ├── hooks/                  # Shared hooks
+│   │   ├── icons/                  # Icon components
+│   │   └── types/                  # TypeScript types
+│   │
+│   ├── i18n/                       # Internationalization
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tsconfig.json
+│   ├── tailwind.config.js
+│   └── postcss.config.js
+│
+├── audio/                          # Sample Audio Files
+│   └── emergency.wav
+│
+├── logs/                           # Application Logs (runtime)
+│
+├── main.py                         # Application Entry Point
+├── requirements.txt                # Python Dependencies
+├── requirements-pinned.txt         # Pinned Dependencies
+├── Dockerfile                      # Docker Container Definition
+├── docker-compose.yml              # Docker Compose Config
+├── .env.example                    # Environment Template
+├── .gitignore                      # Git Ignore Patterns
+├── CONTRIBUTING.md                 # Contribution Guidelines
+└── README.md                       # Project Documentation
+```
 
-### static/
-- static/dashboard.html    # Analytics dashboard
+## Component Summary
 
-### tests/
-- tests/pytest.ini         # Pytest configuration
-- tests/conftest.py        # Pytest fixtures
-- tests/test_db_connection.py  # Database connection test
+### Backend Components
 
-### config/
-- config/config.yaml                              # Main configuration
-- config/prompts/incident_prompt.txt             # Incident classification prompt
-- config/prompts/severity_prompt.txt             # Severity classification prompt
-- config/prompts/dispatch_prompt.txt             # Dispatch classification prompt
-- config/prompts/evaluation_prompt.txt           # Self-evaluation prompt
+| Directory | Files | Purpose |
+|-----------|-------|---------|
+| `agents/` | 5 | AI agent implementations |
+| `api/` | 9 | REST API endpoints |
+| `controllers/` | 4 | Business logic |
+| `data/` | 3 | Database management |
+| `graph/` | 9 | LangGraph workflows |
+| `models/` | 7 | ML model wrappers |
+| `services/` | 3 | Specialized services |
 
-### config/emergency_rules/en/
-- config/emergency_rules/en/incident_rules.json   # English incident rules
-- config/emergency_rules/en/severity_rules.json   # English severity rules
-- config/emergency_rules/en/dispatch_rules.json   # English dispatch rules
-- config/emergency_rules/en/evaluation_rules.json # English evaluation rules
+### Frontend Components
 
-### config/emergency_rules/ar/
-- config/emergency_rules/ar/incident_rules.json   # Arabic incident rules (to be added)
-- config/emergency_rules/ar/severity_rules.json   # Arabic severity rules (to be added)
-- config/emergency_rules/ar/dispatch_rules.json   # Arabic dispatch rules (to be added)
-- config/emergency_rules/ar/evaluation_rules.json # Arabic evaluation rules (to be added)
+| Directory | Files | Purpose |
+|-----------|-------|---------|
+| `view/src/` | 6 | Core React app |
+| `view/realtime_incident/` | 12 | Real-time call handling |
+| `view/accepted_incident/` | ~10 | Reviewed incidents |
+| `view/incidents_list/` | ~10 | Incident dashboard |
+| `view/shared/` | 30+ | Reusable components |
 
-### models/
-- models/__init__.py               # Package init
-- models/stt_model.py             # Speech-to-Text model
-- models/language_model.py        # Language detection model
-- models/incident_classifier.py   # Incident classification model
-- models/severity_classifier.py   # Severity classification model
-- models/dispatch_classifier.py   # Dispatch classification model
-- models/rlhf_trainer.py          # RLHF training module
+### Configuration
 
-### agents/
-- agents/__init__.py                      # Package init
-- agents/stt_agent.py                    # STT agent
-- agents/language_detection_agent.py     # Language detection agent
-- agents/incident_agent.py               # Incident classification agent
-- agents/severity_agent.py               # Severity assessment agent
-- agents/dispatch_agent.py               # Dispatch recommendation agent
-- agents/self_eval_agent.py              # Self-evaluation agent
+| File | Purpose |
+|------|---------|
+| `config/config.yaml` | Main application settings |
+| `config/prompts/*.txt` | LLM prompt templates |
+| `config/emergency_rules/` | Classification rule JSONs |
+| `.env` | Environment variables |
 
-### controllers/
-- controllers/__init__.py           # Package init
-- controllers/agent_controller.py   # Agent orchestration controller
-- controllers/main_controller.py    # Main business logic controller
+### Documentation
 
-### api/
-- api/__init__.py           # Package init
-- api/audio_router.py      # Audio analysis endpoints
-- api/feedback_router.py   # Feedback submission endpoints
-- api/case_router.py       # Case retrieval endpoints
-- api/retrain_router.py    # Model retraining endpoints
-- api/health_router.py     # Health check endpoints
+| File | Purpose |
+|------|---------|
+| `README.md` | Project overview |
+| `CONTRIBUTING.md` | Contribution guidelines |
+| `docs/ARCHITECTURE.md` | System architecture |
+| `docs/DATABASE_SCHEMA.md` | Database documentation |
+| `docs/FRONTEND_GUIDE.md` | Frontend development |
+| `docs/API_EXAMPLES.md` | API usage examples |
 
-### data/
-- data/init_db.py    # Database initialization script
-- data/cases.db      # Cases database (created at runtime)
-- data/feedback.db   # Feedback database (created at runtime)
+## Key Files
 
-### tests/unit/
-- tests/unit/__init__.py              # Package init
-- tests/unit/test_language_model.py   # Language model tests
-- tests/unit/test_agents.py           # Agent tests
-- tests/unit/test_database.py         # Database tests
+### Entry Points
 
-### tests/integration/
-- tests/integration/__init__.py   # Package init
-- tests/integration/test_api.py   # API integration tests
-- tests/integration/test_pipeline.py  # Pipeline integration tests
+| File | Purpose |
+|------|---------|
+| `main.py` | FastAPI application entry |
+| `view/src/main.tsx` | React application entry |
 
-## Component Overview
+### Configuration
 
-### 1. Models (6 files)
-- STT Model: Converts audio to text using Whisper
-- Language Model: Detects language from text
-- Incident Classifier: Classifies emergency type
-- Severity Classifier: Assesses urgency level
-- Dispatch Classifier: Recommends dispatch units
-- RLHF Trainer: Handles self-improvement
+| File | Purpose |
+|------|---------|
+| `config/config.yaml` | Application configuration |
+| `vite.config.ts` | Frontend build configuration |
+| `docker-compose.yml` | Container orchestration |
 
-### 2. Agents (6 files)
-- STT Agent: Orchestrates speech-to-text
-- Language Detection Agent: Identifies language
-- Incident Agent: Classifies incident
-- Severity Agent: Assesses severity
-- Dispatch Agent: Recommends units
-- Self-Eval Agent: Evaluates quality
+### Database
 
-### 3. Controllers (2 files)
-- Agent Controller: Orchestrates agent pipeline
-- Main Controller: Handles business logic and DB
+| File | Purpose |
+|------|---------|
+| `data/init_db.py` | Database schema initialization |
+| `data/migrate_*.py` | Database migrations |
 
-### 4. API Routers (5 files)
-- Audio Router: Audio analysis endpoint
-- Feedback Router: Operator feedback endpoint
-- Case Router: Case retrieval endpoint
-- Retrain Router: RLHF training endpoint
-- Health Router: Health check endpoint
+## Related Documentation
 
-### 5. Configuration
-- YAML config file
-- 4 prompt templates
-- 4 English rule files
-- 4 Arabic rule files (templates)
-
-### 6. Tests
-- 3 unit test files
-- 2 integration test files
-- Pytest configuration
-- Test fixtures
-
-## Total Files Created: 70+
-
-## Next Steps
-
-1. Add Arabic rule files (4 files)
-2. Add sample audio files for testing
-3. Set up CI/CD pipeline
-4. Configure production environment
-5. Set up monitoring and logging
-6. Add authentication/authorization
-7. Optimize performance
-8. Add more comprehensive tests
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed system architecture
+- [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) - Database tables and queries
+- [FRONTEND_GUIDE.md](FRONTEND_GUIDE.md) - Frontend development guide
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
