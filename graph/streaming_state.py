@@ -212,9 +212,9 @@ def create_streaming_initial_state(
         detected_language=detected_language,
         language_probability=0.0,
 
-        # Language verification
-        language_confidence=0.0,
-        is_supported=False,
+        # Language verification (always supported - language forced via WebSocket param)
+        language_confidence=1.0, #0.0
+        is_supported=True,      #False
         unsupported_language_reason="",
 
         # Classification fields (initialized empty)

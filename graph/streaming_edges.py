@@ -5,6 +5,9 @@ Defines routing logic for the streaming emergency dispatch workflow.
 These functions determine which node to execute next based on
 streaming-specific state values.
 
+NOTE: Language detection routing removed. Language is now forced at the
+WebSocket/STT level via --language parameter (ar or en).
+
 IMPORTANT: This file is SEPARATE from graph/edges.py - does NOT modify it.
 """
 
@@ -18,32 +21,33 @@ from graph.streaming_state import StreamingEmergencyState
 # STREAMING ROUTING FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════
 
-def route_after_streaming_language_detection(
-    state: StreamingEmergencyState
-) -> Literal["incident_classification", "unsupported_language_handler"]:
-    """
-    Route after language detection in streaming workflow.
+# NOTE: route_after_streaming_language_detection() removed.
+# Language is now forced at WebSocket/STT level via --language parameter.
+# def route_after_streaming_language_detection(
+#     state: StreamingEmergencyState
+# ) -> Literal["incident_classification", "unsupported_language_handler"]:
+#     """
+#     Route after language detection in streaming workflow.
 
-    If the detected language is not supported, route to the
-    unsupported language handler. Otherwise, continue to
-    incident classification.
+#     If the detected language is not supported, route to the
+#     unsupported language handler. Otherwise, continue to
+#     incident classification.
 
-    Args:
-        state: Current StreamingEmergencyState after language detection
+#     Args:
+#         state: Current StreamingEmergencyState after language detection
 
-    Returns:
-        Next node name: "incident_classification" or "unsupported_language_handler"
-    """
-    is_supported = state.get("is_supported", False)
+#     Returns:
+#         Next node name: "incident_classification" or "unsupported_language_handler"
+#     """
+#     is_supported = state.get("is_supported", False)
 
-    if not is_supported:
-        logger.info(f"[Streaming Router] Language not supported: {state.get('detected_language')}, "
-                    "routing to unsupported_language_handler")
-        return "unsupported_language_handler"
+#     if not is_supported:
+#         logger.info(f"[Streaming Router] Language not supported: {state.get('detected_language')}, "
+#                     "routing to unsupported_language_handler")
+#         return "unsupported_language_handler"
 
-    logger.debug("[Streaming Router] Language supported, routing to incident_classification")
-    return "incident_classification"
-
+#     logger.debug("[Streaming Router] Language supported, routing to incident_classification")
+#     return "incident_classification"
 
 def route_after_confidence_gate(
     state: StreamingEmergencyState
@@ -92,20 +96,21 @@ def should_exit_streaming(state: StreamingEmergencyState) -> bool:
 # FACTORY FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════
 
-def create_streaming_language_router():
-    """
-    Create a language router for streaming workflow.
+# NOTE: create_streaming_language_router() removed.
+# Language is now forced at WebSocket/STT level via --language parameter.
+# def create_streaming_language_router():
+#     """
+#     Create a language router for streaming workflow.
 
-    Factory function that returns a router function.
+#     Factory function that returns a router function.
 
-    Returns:
-        Router function for language detection
-    """
-    def router(state: StreamingEmergencyState) -> Literal["incident_classification", "unsupported_language_handler"]:
-        return route_after_streaming_language_detection(state)
+#     Returns:
+#         Router function for language detection
+#     """
+#     def router(state: StreamingEmergencyState) -> Literal["incident_classification", "unsupported_language_handler"]:
+#         return route_after_streaming_language_detection(state)
 
-    return router
-
+#     return router
 
 def create_confidence_gate_router():
     """
@@ -127,12 +132,13 @@ def create_confidence_gate_router():
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Node names for streaming workflow
-NODE_LANGUAGE_DETECTION = "language_detection"
+# NOTE: Language detection nodes removed - language forced at WebSocket/STT level
+# NODE_LANGUAGE_DETECTION = "language_detection"
 NODE_INCIDENT_CLASSIFICATION = "incident_classification"
 NODE_SEVERITY_CLASSIFICATION = "severity_classification"
 NODE_DISPATCH_CLASSIFICATION = "dispatch_classification"
 NODE_CONFIDENCE_GATE = "confidence_gate"
-NODE_UNSUPPORTED_LANGUAGE = "unsupported_language_handler"
+# NODE_UNSUPPORTED_LANGUAGE = "unsupported_language_handler"
 NODE_STREAMING_COMPLETE = "streaming_complete"
 NODE_CONTINUE_EVALUATION = "continue_evaluation"
 NODE_END = "end"
@@ -141,7 +147,8 @@ NODE_END = "end"
 EXIT_CONFIDENCE_MET = "confidence_met"
 EXIT_CRITICAL_SEVERITY = "critical_severity"
 EXIT_TIMEOUT = "timeout"
-EXIT_UNSUPPORTED_LANGUAGE = "unsupported_language"
+
+# EXIT_UNSUPPORTED_LANGUAGE = "unsupported_language"
 EXIT_CONTINUE = "continue"
 
 # Review priorities
@@ -150,10 +157,10 @@ PRIORITY_HIGH = "high"
 PRIORITY_NORMAL = "normal"
 
 # Conditional edge mappings for clarity
-LANGUAGE_DETECTION_ROUTES = {
-    "incident_classification": NODE_INCIDENT_CLASSIFICATION,
-    "unsupported_language_handler": NODE_UNSUPPORTED_LANGUAGE,
-}
+# LANGUAGE_DETECTION_ROUTES = {
+#     "incident_classification": NODE_INCIDENT_CLASSIFICATION,
+#     "unsupported_language_handler": NODE_UNSUPPORTED_LANGUAGE,
+# }
 
 CONFIDENCE_GATE_ROUTES = {
     "streaming_complete": NODE_STREAMING_COMPLETE,
